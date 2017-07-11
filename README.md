@@ -4,14 +4,15 @@ Web application for Privat24 for business statements import and Manager.io API e
 
 
 Works with [Privat24 API](https://link.privatbank.ua/console/wiki)
-and locally installed Manager server
 
+and locally installed Manager server
 
 ## Usage
 
     $ lein ring server
 
 and open browser http://localhost:3000/statements
+
 
 ![Screenshot 1](/doc/shot1.png?raw=true "Screenshot 1")
 
