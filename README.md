@@ -1,36 +1,30 @@
-# privat-manager
+# Privat24 statements export to Manager.io API
 
-FIXME: description
+Web application for Privat24 for business statements import and Manager.io API export
 
-## Installation
 
-Download from http://example.com/FIXME.
+Works with [Privat24 API](https://link.privatbank.ua/console/wiki)
+and locally installed Manager server
+
 
 ## Usage
 
-FIXME: explanation
+    $ lein ring server
 
-    $ java -jar privat-manager-0.1.0-standalone.jar [args]
+and open browser http://localhost:3000/statements
 
-## Options
+![Screenshot 1](/doc/shot1.png?raw=true "Screenshot 1")
 
-FIXME: listing of options this app accepts.
 
-## Examples
+![Screenshot 2](/doc/shot2.png?raw=true "Screenshot 2")
 
-...
 
-### Bugs
+![Screenshot 3](/doc/shot3.png?raw=true "Screenshot 3")
 
-...
-
-### Any Other Sections
-### That You Think
-### Might be Useful
 
 ## License
 
-Copyright © 2017 FIXME
+Copyright © 2017 Maksym Prokopov
 
 Distributed under the Eclipse Public License either version 1.0 or (at
 your option) any later version.
