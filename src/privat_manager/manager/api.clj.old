@@ -1,0 +1,147 @@
+;; (def api (str "http://manager.it-premium.com.ua:8080/api/"))
+
+;; (defn index-link [category-uuid] (str api business-id "/" category-uuid "/index.json"))
+(def customers (atom nil))
+(def suppliers (atom nil))
+(def accounts (atom nil))
+;; (defn object-link [uuid] (str api business-id "/" uuid ".json"))
+;; (def business-id "937914e4-5686-4eec-ba21-474b1c0f982e")
+;; (def cash-accounts-list "1408c33b-6284-4f50-9e31-48cbea21f3cf")
+;; (def customers-list "ec37c11e-2b67-49c6-8a58-6eccb7dd75ee")
+;; (def suppliers-list "6d2dc48d-2053-4e45-8330-285ebd431242")
+;; (def uuids {:receipts "8a995f93-a7a7-4297-a3b6-35a339a5ae0d"
+;;             :payments "cb120a14-83cf-46e9-b05f-6725342310ad"
+;;             :accounts "1408c33b-6284-4f50-9e31-48cbea21f3cf"
+;;             :suppliers "6d2dc48d-2053-4e45-8330-285ebd431242"
+;;             :customers "ec37c11e-2b67-49c6-8a58-6eccb7dd75ee"
+;;             :tax-code "5f1d5dfa-51f4-4b9f-aaa0-bd7b3db3de34"
+;;             :customer-edrpou "b140c486-ab9d-40d2-b538-bfabe5fda0b8"
+;;             :supplier-edrpou "df7a5718-6c2f-43d0-b001-f264e2b2b6e8"
+;;             :bank-account "395b272d-e919-4ae0-b502-b1d4aa618853"})
+
+;; (def bank-account-field "395b272d-e919-4ae0-b502-b1d4aa618853")
+;; (def our-bank-account-field "699aa565-38e7-406b-a5ff-c4ca3964c6b1")
+
+;; (defn get-item [uuid]
+;;   (let [request (client/get (object-link uuid)
+;;                             {:as :json
+;;                              :basic-auth [login password]})
+;;         body (get request :body)]
+;;     body))
+
+;; ;; POST creates item
+;; (defn api-post
+;;   "post map to manager API under key k"
+;;   [k m]
+;;   (client/post (category-link (get uuids k))
+;;                {:accept :json
+;;                 :content-type :json
+;;                 :basic-auth [login password]
+;;                 :body (cheshire/generate-string m)}))
+
+;; (defn get-index [uuid storage]
+;;   (let [request (client/get (index-link uuid)
+;;                             {:as :json
+;;                              :basic-auth [login password]})
+;;         body (get request :body)]
+;;     (map #(swap! storage assoc % nil) body)))
+
+;; (defn populate-storage [storage]
+;;   (map #(swap! storage assoc (key %) (get-item (key %))) @storage))
+
+;; (defn save-storage [storage path]
+;;   (spit path @storage))
+
+;; (defn load-storage [storage path]
+;;   (reset! storage (read-string (slurp path))))
+
+
+;; (defn get-our-code2 [customer]
+;;   (get-in customer [:CustomFields (keyword our-bank-account-field)]))
+
+;; (defn get-code2 [customer]
+;;   (get-in customer [:CustomFields (keyword bank-account-field)]))
+
+;; (defn get-by-business-id [customer]
+;;   (get customer :BusinessIdentifier))
+
+;; (defn get-by-code [customer]
+;;   (get customer :Code))
+
+;; (defn find-by-business-id
+;;   "returns customer uuid"
+;;   [code coll]
+;;   (first
+;;    (filter #(= code (-> % val get-by-business-id)) coll)))
+
+;; (defn find-customer-by-edrpou
+;;   "returns customer uuid"
+;;   [code coll]
+;;   (first
+;;    (filter #(= code (-> % val edrpou-by-customer)) coll)))
+
+;; (defn find-supplier-by-edrpou
+;;   "returns customer uuid"
+;;   [code coll]
+;;   (first
+;;    (filter #(= code (-> % val edrpou-by-supplier)) coll)))
+
+;; (defn find-by-code
+;;   "returns customer uuid"
+;;   [code coll]
+;;   (first
+;;    (filter #(= code (-> % val get-by-code)) coll)))
+
+;; (defn find-by-code2
+;;   "returns customer uuid"
+;;   [code coll]
+;;   (first
+;;    (filter #(= code (-> % val get-our-code2)) coll)))
+
+;; (defn setup-list [k storage]
+;;   (reset! storage nil)
+;;   (get-index (get uuids k) storage))
+;;   ;(populate-storage storage))
+
+;; (defn get-wallet-uuid-by-bank-code [bank-code]
+;;   (->
+;;    (find-by-code2 bank-code @accounts)
+;;    key))
+
+;; (defn get-customer-uuid-by-edrpou [edrpou]
+;;   (when-let [customer (find-by-business-id edrpou @customers)]
+;;     (key customer))) 
+
+;; (defn get-customer-uuid-by-edrpou [edrpou]
+;;   (when-let [customer (find-customer-by-edrpou edrpou @customers)]
+;;     (key customer))) 
+
+;; (defn get-supplier-uuid-by-edrpou [edrpou]
+;;   (when-let [supplier (find-supplier-by-edrpou edrpou @suppliers)]
+;;     (key supplier))) 
+
+;; (defn get-supplier-uuid-by-edrpou-old [edrpou]
+;;   (when-let [supplier (find-by-code edrpou @suppliers)]
+;;     (key supplier))) 
+
+;; (defn find-customer-by-edrpou2 [edrpou manager-db]
+;;   (let [customers (get-in @manager-db [:db :customers])]
+;;     (first
+;;      (filter #(= edrpou (edrpou-by-customer2 (-> % key) manager-db)) customers))))
+  
+
+;; (defn get-customer-uuid-by-edrpou2 [edrpou]
+;;   (when-let [customer (find-customer-by-edrpou2 edrpou @customers)]
+;;     (key customer))) 
+;; (defn setup-all []
+;;   (do
+;;    (setup-list :accounts accounts)
+;;    (setup-list :customers customers)))
+;; (defn setup-accounts []
+;;   (do
+;;    (reset! accounts nil)
+;;    (reset! customers nil)
+;;    (reset! suppliers nil)
+;;    (get-index (:accounts uuids) accounts)
+;;    (get-index (:suppliers uuids) suppliers)
+;;    (get-index (:customers uuids) customers)))

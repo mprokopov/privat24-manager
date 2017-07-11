@@ -1,0 +1,88 @@
+
+;; (defn get-amount [statement]
+;;   (Float.
+;;    (get-in statement [:amount (keyword "@amt")])))
+
+;; (defn get-customer [statement]
+;;   (let [amount (get-amount statement)]
+;;     (if (> amount 0)
+;;       (get-in statement [:debet :account])
+;;       (get-in statement [:credit :account]))))
+
+;; (defn get-our-account [statement]
+;;   (let [amount (get-amount statement)]
+;;     (if (> amount 0)
+;;       (get-in statement [:credit :account])
+;;       (get-in statement [:debet :account]))))
+
+;; (defn get-code2 [statement]
+;;   (->
+;;    (get-customer statement)
+;;    (get-in [:customer (keyword "@crf")])))
+
+;; (defn get-date [statement]
+;;   (let [date (get-in statement [:info (keyword "@customerdate")])]
+;;     (when date
+;;       (time.format/parse custom-formatter date))))
+
+;; (defn get-payment-type
+;;   "returns :debet or :credit"
+;;   [statement]
+;;   (let [amount (get-amount statement)]
+;;     (if (> amount 0) :receipt :payment)))
+
+;; (defn statement->payment [statement]
+;;   (let [{:keys [date payee refp amount purpose credit-account debit-account]} statement]
+;;     {"Date" date
+;;      "Payee" payee
+;;      "BankClearStatus" "Cleared"
+;;      "CreditAccount" credit-account
+;;      ;; "Reference" refp
+;;      "Notes" (str "Ref: " refp) 
+;;      "Lines" [{"Account" debit-account
+;;                "Amount" amount
+;;                "Description" purpose}]})) 
+
+;; (defn statement->receipt [statement]
+;;   (let [{:keys [payer date amount refp purpose debit-account credit-account]} statement]
+;;     {"Payer" payer
+;;      "BankClearStatus" "Cleared"
+;;      "Date" date
+;;      "DebitAccount" debit-account
+;;      ;; "Reference" refp
+;;      "Notes" (str "Ref: " refp)
+;;      "Lines" [{"Account" credit-account
+;;                "Amount" amount
+;;                "Description" purpose}]}))
+
+;; (defn statement->manager2 [statement]
+;;   (let [amount (get-amount statement)
+;;         purpose (get statement :purpose)
+;;         parsed-date (get-date statement)
+;;         credit-bank-code (get-in statement [:credit :account (keyword "@number")])
+;;         credit-edrpou (get-in statement [:credit :account :customer (keyword "@crf")])
+;;         debet-bank-code (get-in statement [:debet :account (keyword "@number")])
+;;         debet-edrpou (get-in statement [:debet :account :customer (keyword "@crf")])
+;;         state {:amount amount
+;;                :refp (get-in statement [:info (keyword "@refp")])
+;;                :date (time.format/unparse (time.format/formatters :date) parsed-date)
+;;                :purpose purpose}]
+;;     (case (get-payment-type statement)
+;;       :payment (statement->payment (assoc state
+;;                                           :payee (get-in @manager.api/suppliers [(manager.api/get-supplier-uuid-by-edrpou credit-edrpou) :Name])
+;;                                           :debit-account (manager.api/get-supplier-uuid-by-edrpou credit-edrpou)
+;;                                           :amount (- amount)
+;;                                           :credit-account (manager.api/get-wallet-uuid-by-bank-code debet-bank-code))) 
+      
+;;       :receipt (statement->receipt (assoc state
+;;                                           :payer (get-in @manager.api/customers [(manager.api/get-customer-uuid-by-edrpou debet-edrpou) :Name])
+;;                                           :debit-account (manager.api/get-wallet-uuid-by-bank-code credit-bank-code) 
+;;                                           :credit-account (manager.api/get-customer-uuid-by-edrpou debet-edrpou)))))) 
+                                          
+;; (defn create-manager-statement [statement]
+;;   (let [pay-type (get-payment-type statement)
+;;         account-key (case pay-type
+;;                       :payment :payments
+;;                       :receipt :receipts)]
+;;                                         ;(pprint (str "type: " account-key "" (statement->manager2 statement))))
+;;     (manager.api/api-post account-key (statement->manager2 statement))))
