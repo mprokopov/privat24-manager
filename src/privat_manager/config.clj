@@ -19,7 +19,7 @@
   (let [bid (:business-id @settings)]
     (spit (str "resources/" bid ".edn") @settings)))
 
-(defn load-settings [bid settings]
+(defn load-settings! [bid settings]
   (do
    (reset! settings
           (read-string

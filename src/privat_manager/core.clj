@@ -4,7 +4,7 @@
             [privat-manager.privat.auth :as privat.auth]
             [privat-manager.privat.util :as privat.util]
             [privat-manager.utils :as utils]
-            [privat-manager.template :refer [x-panel session-info sidebar-menu]]
+            [privat-manager.template :refer [x-panel privat-session-info sidebar-menu date-form]]
             [privat-manager.manager.api :as manager.api]
             [compojure.core :refer [defroutes GET POST context]]
             [compojure.coercions :refer [as-int as-uuid]]
@@ -24,8 +24,6 @@
             [clojure.string :as str])
   (:import java.util.Locale)
   (:gen-class))
-
-(declare i18n)
 
 
 (def app-db (atom {:business-id ""
@@ -91,21 +89,19 @@
      [:script {:src "/custom.js"}]]]))
 
 
-(defn load-account [account]
+(defn load-account! [account app-db]
   (template
    (utils/map-to-html-list
-     (config/load-settings account app-db))))
+     (config/load-settings! account app-db))))
 
 
-(defn login-form [& req]
+(defn login-form [app-db]
   [:form {:action "/login" :method :POST}
-   [:h3 (str "Доступ к " (:login @privat))]
+   [:h3 (str "Доступ к " (get-in app-db [:privat :login]))]
    [:input.btn.btn-primary {:type :submit :value "Пройти авторизацию Privat24"}]])
 
 
-
-
-(defn settings [& params]
+(defn settings [app-db]
   (let [accounts #{"puzko" "itservice" "super-truper"}
         f (fn [e] [:option {:value e :selected (when (= e (:business-id @app-db)) true)} e])
         {roles :roles} @privat]
@@ -133,14 +129,14 @@
         [:div.col-md-3
          (x-panel "Приват24"
           (if @privat
-            (if (privat.auth/authorized? privat)
-              (session-info privat)
-              (login-form))
+            (if (privat.auth/authorized? (:privat @app-db))
+              (privat-session-info (:privat @app-db))
+              (login-form @app-db))
             "не загружены настройки"))]])))
 
 
-(defn parse-edrpou-statements []
-  (let [statements (get-in @manager [:db :mstatements])]
+(defn parse-edrpou-statements [app-db]
+  (let [statements (get-in app-db [:manager :db :mstatements])]
     (if statements
      [:table.table
       [:thead
@@ -158,9 +154,9 @@
      [:p "Необходимо загрузить выписки"])))
 
 
-(defn customers-index [& params]
-  (let [customers (get-in @manager [:db :customers])
-        custom-edrpou (keyword (get-in @manager [:uuids :customer-edrpou]))]
+(defn customers-index [app-db]
+  (let [customers (get-in @app-db [:manager :db :customers])
+        custom-edrpou (keyword (get-in @app-db [:manager :uuids :customer-edrpou]))]
         ;; custom-edrpou (keyword (:customer-edrpou @uuids))]
    (template
     [:form {:method :POST}
@@ -181,12 +177,12 @@
              [:td [:a {:href (str "/customers/" (-> customer key name))} n]]
              [:td edrpou]]))]])]
     [:div.col-md-6
-     (parse-edrpou-statements)])))
+     (parse-edrpou-statements @app-db)])))
 
 
-(defn suppliers-index [& params]
-  (let [suppliers (get-in @manager [:db :suppliers])
-        edrpou-uuid (keyword (get-in @manager [:uuids :supplier-edrpou]))]
+(defn suppliers-index [app-db]
+  (let [suppliers (get-in @app-db [:manager :db :suppliers])
+        edrpou-uuid (keyword (get-in @app-db [:manager :uuids :supplier-edrpou]))]
     (template
      [:form {:method :POST}
       [:input.btn.btn-primary {:type :submit :value "Загрузить из Manager"}]
@@ -203,42 +199,29 @@
                [:td [:a {:href (str "/suppliers/" (name uuid))} n]]
                [:td (get-in m [:CustomFields edrpou-uuid])]]))]])]
      [:div.col-md-6
-      (parse-edrpou-statements)])))
+      (parse-edrpou-statements @app-db)])))
 
 
-(defn date-form []
-  [:div.col-md-3
-   [:form#date-select {:method :post}
-    [:input {:name :stdate :type :hidden}]
-    [:input {:name :endate :type :hidden}]
-    [:div.controls
-     [:div.input-prepend.input-group
-      [:span.add-in.input-group-addon
-       [:i.glyphicon.glyphicon-calendar.fa.fa-calendar]]
-      [:input#testDate.form-control {:type :text :name :testDate :style "width: 180px;"}]
-      [:span.input-group-btn
-       [:button.btn.btn-primary {:type :button :onClick "document.getElementById('date-select').submit();"} "Загрузить из Privat24"]]]]]])
  
 
-(defn fetch-statements [stdate endate]
+(defn fetch-statements! [app-db stdate endate]
   (do
-   (swap! manager assoc-in [:db :statements] (privat.api/get-statements privat stdate endate))
-   (swap! manager assoc-in [:db :mstatements] (->> (privat.util/make-statements-list manager)
-                                                   (map privat.util/transform->manager2)
-                                                   (map #(privat.util/make-manager-statement % manager))
-                                                   (sort-by :date)))
+   (swap! app-db assoc-in [:manager :db :statements] (privat.api/get-statements (:privat @app-db) stdate endate))
+   (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.util/make-statements-list (:manager @app-db))
+                                                           (map privat.util/transform->manager2)
+                                                           (map #(privat.util/make-manager-statement % manager))
+                                                           (sort-by :date)))
    (ring.util.response/redirect "/statements")))
 
 
-(defn statements-index [& params]
-  (let [statements (get-in @manager [:db :mstatements])]
+(defn statements-index [app-db]
+  (let [statements (get-in @app-db [:manager :db :mstatements])]
     (template
+       [:h1 "Выписки"]
        [:div.row
-        (if (privat.auth/authorized? privat)
+        (if (privat.auth/authorized? (:privat @app-db))
           (date-form)
           [:div.col-md-6.alert.alert-danger "необходима авторизация для загрузки выписок"])
-            ;; [:form {:action "/login" :method :post}
-            ;;   [:input.btn.btn-primary {:type :submit :value "Авторизоваться"}]]])
         [:div.clearfix]
         (let [f (fn [statement i]
                   (let [{:keys[receipt amount refp payment purpose debit credit date payee payer recognized comment]} statement]
@@ -250,8 +233,6 @@
                         [:a.date.pull-left {:href (str "/statements/" i)}
                           [:p.month month]
                           [:p.day day]])]]
-                       ;[:div.media-body
-                         ;[:a.title comment])]]]
                      [:td amount]
                      [:td comment]
                      [:td (when recognized [:i.fa.fa-check-square]) " " payee payer]
@@ -326,7 +307,7 @@
 ;;       [:h1 "Произошла ошибка при создании!"])
 ;;      (paging-statements id))))
 
-(defn post-statement2 [id]
+(defn post-statement! [id]
   (let [statement (nth (get-in @app-db [:manager :db :mstatements]) id)
         {status :status headers :headers} (privat.util/post2 statement manager)]
     (template
@@ -338,16 +319,16 @@
        [:h1 "Произошла ошибка при создании!"])
      (paging-statements id))))
 
-(defn fetch-suppliers []
+(defn fetch-suppliers! [manager-db]
   (do
-    (manager.api/get-index2! :suppliers manager)
-    (manager.api/populate-db! :suppliers manager)
+    (manager.api/get-index2! :suppliers manager-db)
+    (manager.api/populate-db! :suppliers manager-db)
     (ring.util.response/redirect "/suppliers")))
 
-(defn fetch-customers []
+(defn fetch-customers! [manager-db]
   (do
-    (manager.api/get-index2! :customers manager)
-    (manager.api/populate-db! :customers manager)
+    (manager.api/get-index2! :customers manager-db)
+    (manager.api/populate-db! :customers manager-db)
     (ring.util.response/redirect "/customers")))
 
 (defn form-customer [uuid m]
@@ -390,15 +371,15 @@
        
 
 
-(defn update-customer [uuid m]
-  (let [cust (keyword (get-in @manager [:uuids :customer-edrpou]))
+(defn update-customer! [uuid m manager-db]
+  (let [cust (keyword (get-in @manager-db [:uuids :customer-edrpou]))
         edrpou (:edrpou m)
-        update-map (assoc-in (manager.api/fetch-uuid-item! uuid manager) [:CustomFields cust] edrpou)]
+        update-map (assoc-in (manager.api/fetch-uuid-item! uuid manager-db) [:CustomFields cust] edrpou)]
    (template
     [:p "Updated"
-     (manager.api/api-update! uuid update-map manager)])))
+     (manager.api/api-update! uuid update-map manager-db)])))
 
-(defn update-supplier [uuid m]
+(defn update-supplier! [uuid m]
   (let [cust (keyword (get-in @manager [:uuids :supplier-edrpou]))
         edrpou (:edrpou m)
         update-map (assoc-in (manager.api/fetch-uuid-item! uuid manager) [:CustomFields cust] edrpou)]
@@ -413,7 +394,7 @@
     (utils/map-to-html-list
       (privat.auth/auth-p24 privat)))))
 
-(defn rests-index [& params]
+(defn rests-index [app-db]
   (let [rests (get-in @app-db [:manager :db :rests])]
     (template [:h1 "Остатки "]
               [:div
@@ -434,10 +415,10 @@
                      [:td inrest]
                      [:td outrest]])]]))) 
 
-(defn fetch-rests! [stdate endate]
-  (swap! manager assoc-in [:db :rests]
+(defn fetch-rests! [app-db stdate endate]
+  (swap! app-db assoc-in [:manager :db :rests]
     (->>
-     (privat.api/get-rests privat stdate endate)
+     (privat.api/get-rests (:privat @app-db) stdate endate)
      (mapv privat.util/parse-rest)
      (sort-by :date))))
 
@@ -447,32 +428,32 @@
     (ring.util.response/redirect to))) 
 
 (defroutes app 
-  (GET "/" accounts)
+  (GET "/" [] (settings app-db))
   (context "/customers" []
-           (GET "/" [] customers-index)
-           (POST "/" [] (fetch-customers))
+           (GET "/" [] (customers-index app-db))
+           (POST "/" [] (fetch-customers! manager))
            (GET "/:uuid" [uuid] (single-customer uuid)) 
-           (POST "/:uuid" [uuid edrpou] (update-customer uuid {:edrpou edrpou}))) 
+           (POST "/:uuid" [uuid edrpou] (update-customer! uuid {:edrpou edrpou} manager))) 
   (context "/suppliers" []
-           (GET "/" [] suppliers-index)
+           (GET "/" [] (suppliers-index app-db))
            (GET "/:uuid" [uuid] (single-supplier uuid)) 
-           (POST "/:uuid" [uuid edrpou] (update-supplier uuid {:edrpou edrpou})) 
-           (POST "/" [] (fetch-suppliers)))
+           (POST "/:uuid" [uuid edrpou] (update-supplier! uuid {:edrpou edrpou})) 
+           (POST "/" [] (fetch-suppliers! manager)))
   (context "/rests" []
-           (GET "/" [] rests-index)
-           (POST "/" [stdate endate] (with-redirect (fetch-rests! stdate endate) "/rests")))
+           (GET "/" [] (rests-index app-db))
+           (POST "/" [stdate endate] (with-redirect (fetch-rests! app-db stdate endate) "/rests")))
   (context "/settings" []
    (GET "/load" [data] (with-redirect (config/load-cached-db (keyword data) app-db) "/accounts"))
    (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/accounts")))
-  (GET "/accounts" [] settings)
-  (POST "/accounts" [account] (load-account account))
+  (GET "/accounts" [] (settings app-db))
+  (POST "/accounts" [account] (load-account! account app-db))
   (POST "/login" [] login-step2)
-  (GET "/auth/logout" [] (with-redirect (privat.auth/logout! privat) "/accounts"))
+  (GET "/auth/logout" [] (with-redirect (privat.auth/logout! app-db) "/accounts"))
   (context "/api" [])
   (context "/statements" []
-           (GET "/" [] statements-index)
-           (POST "/" [stdate endate] (fetch-statements stdate endate))
-           (POST "/:id" [id :<< as-int] (post-statement2 id))
+           (GET "/" [] (statements-index app-db))
+           (POST "/" [stdate endate] (fetch-statements! app-db stdate endate))
+           (POST "/:id" [id :<< as-int] (post-statement! id))
            (GET "/:id" [id :<< as-int] (single-statement id))))
 
 
@@ -482,8 +463,8 @@
       (wrap-resource "public/vendor/gentelella")
       (wrap-resource "public")
       (wrap-params)
-      (wrap-content-type)))
-      ;(wrap-not-modified)))
+      (wrap-content-type)
+      (wrap-not-modified)))
 
 (defonce server (atom nil))
 

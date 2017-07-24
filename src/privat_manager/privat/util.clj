@@ -123,68 +123,6 @@
    (filter #(= edrpou (manager.api/edrpou-by-customer2 (key %) db)) (get-in @db [:db :customers]))))
 
 
-;; (defn append-uuid
-;;   "appends debit-uuid and credit-uuid to parsed statement depending on statement type.
-;;   It should be [:receipt :customer] or [:receipt :transfer] or [:payment :operational-expences-bank]"
-;;   [parsed-statement db]
-;;   (condp #(contains? %2 %1) parsed-statement
-;;     :receipt (condp = (:receipt parsed-statement)
-;;                :transfer (assoc parsed-statement
-;;                                 :recognized true
-;;                                 :credit-uuid (:bank-account-uuid @db)
-;;                                 :debit-uuid (:cash-account-uuid @db))
-;;                :agent-income (assoc parsed-statement
-;;                                     :recognized true
-;;                                     :payer (get-in parsed-statement [:debit :name])
-;;                                     :debit-uuid (:bank-account-uuid @db))
-;;                :customer (let [{{edrpou :edrpou debitor-name :name} :debit} parsed-statement
-;;                                customer (get-customer-by-edrpou edrpou db)
-;;                                uuid (if customer (key customer) "")
-;;                                n (if customer (get (val customer) :Name) debitor-name)] 
-;;                            (assoc parsed-statement
-;;                                   :payer n
-;;                                   :recognized (when customer true)
-;;                                   :tax-code (get @db :tax-uuid)
-;;                                   :credit-uuid uuid
-;;                                   :debit-uuid (:bank-account-uuid @db))))
-;;     :payment (condp = (:payment parsed-statement)
-;;                :operational-expences-bank (assoc parsed-statement
-;;                                                  :payee "Приватбанк"
-;;                                                  :recognized true
-;;                                                  :credit-uuid (get-uuid-by-key :operational-expences-bank db)
-;;                                                  :debit-uuid (:bank-account-uuid @db))
-;;                :taxes (assoc parsed-statement
-;;                              :payee "Налоговая"
-;;                              :recognized true
-;;                              :credit-uuid (get-uuid-by-key :taxes db)
-;;                              :debit-uuid (:bank-account-uuid @db))
-;;                :salary (assoc parsed-statement
-;;                               :payee "Зарплата"
-;;                               :recognized true
-;;                               :debit-uuid (:bank-account-uuid @db))
-;;                :transfer (assoc parsed-statement
-;;                                 :payee "Трансфер"
-;;                                 :recognized true
-;;                                 :debit-uuid (:bank-account-uuid @db)
-;;                                 :credit-uuid (:cash-account-uuid @db))
-;;                :phone (assoc parsed-statement
-;;                              :payee "Астелит"
-;;                              :recognized true
-;;                              :credit-uuid (get-uuid-by-key :phone db)
-;;                              :debit-uuid (:bank-account-uuid @db))
-;;                :supplier (let [{{edrpou :edrpou} :credit} parsed-statement
-;;                                supplier (get-supplier-by-edrpou edrpou db)
-;;                                uuid (if supplier (key supplier) "")
-;;                                n (if supplier (get (val supplier) :Name) "")]
-;;                            (assoc parsed-statement
-;;                                   :payee n
-;;                                   :tax-code (get @db :tax-uuid)
-;;                                   :recognized (when supplier true)
-;;                                   :credit-uuid uuid
-;;                                   :debit-uuid (:bank-account-uuid @db)))
-;;                nil)
-;;     nil))
-
 (defn assoc-transaction-type
   "assoc parsed statement with category from parsed purpose"
   [parsed-statement]
@@ -198,16 +136,11 @@
   "parses privatbant rests"
   [statement]
   (let [statement (walk/stringify-keys statement)]
-      {;:amount (Float/parseFloat (get-in statement ["amount" "@amt"]))
-       ;:refp (get-in statement ["info" "@refp"])
-       :inrest (Float/parseFloat (get statement "inrest"))
+      {:inrest (Float/parseFloat (get statement "inrest"))
        :outrest (Float/parseFloat (get statement "outrest"))
        :debit (Float/parseFloat (get statement "debet"))
        :credit (Float/parseFloat (get statement "credit"))
        :date (time.format/parse custom-formatter (get-in statement ["date" "@id"]))})) ;; @customerdate
-       ;:purpose (get statement "purpose")
-       ;:debit (parse-account (get-in statement ["debet"]))
-       ;:credit (parse-account (get-in statement ["credit"]))})) 
   
 (defn parse-statement
   "parses privatbank statement and returns map for further processing"
@@ -359,41 +292,6 @@
 (defmethod render-manager-statement :transfer [m]
   (wrap-transfer m))
 
-(defn transform-statement
-  "transforms parsed hashmap for Manager suitable format"
-  [statement]
-  (let [{:keys [amount payee payer purpose refp credit debit date credit-uuid debit-uuid tax-code]} statement
-        amount-localized (my-format "%.2f" (if (< 0  amount) amount (- amount)) "en-US")
-        lines {"Description" purpose
-               "Amount" amount-localized
-               "Account" credit-uuid}
-        state {"Date" (time.format/unparse (time.format/formatters :date) date)
-               "Notes" (str "Reference: " refp)
-
-               "Lines" [(if tax-code (assoc lines "TaxCode" tax-code) lines)]}]
-    (condp #(contains? %2 %1) statement
-      :receipt
-      (if (= :transfer (:receipt statement))
-        (-> state
-            (dissoc "Lines")
-            (assoc "DebitAccount" credit-uuid
-                   "CreditAccount" debit-uuid
-                   "CreditAmount" amount-localized
-                   "Description" purpose
-                   "DebitClearStatus" "Cleared"
-                   "CreditClearStatus" "Cleared"))
-        (assoc state "Payer" payer "DebitAccount" debit-uuid))
-      :payment (if (= :transfer (:payment statement))
-                 (-> state
-                     (dissoc "Lines")
-                     (assoc "DebitAccount" credit-uuid
-                            "CreditAccount" debit-uuid
-                            "CreditAmount" amount-localized
-                            "Description" purpose
-                            "DebitClearStatus" "Cleared"
-                            "CreditClearStatus" "Cleared"))
-                 (assoc state "Payee" payee "CreditAccount" debit-uuid)))))
-
 (defmulti get-category-key
   (fn [x] (-> (select-keys x [:payment :receipt :transfer])
              first
@@ -415,17 +313,6 @@
     (:payment statement) (if (= :transfer (:payment statement)) :transfers :payments)))
 
 
-;; (defn post
-;;   "parses initial bank statement and makes POST to Manager API
-;;   db should contain {:login '' :password ''}"
-;;   [statement db]
-;;   (let [state (-> statement
-;;                   parse-statement
-;;                   assoc-transaction-type
-;;                   (append-uuid db))
-;;         category-key (statement-account state)]
-;;     (manager.api/api-post2! category-key (transform-statement state) db))) 
-
 (defn post2
   "parses initial bank statement and makes POST to Manager API
   db should contain {:login '' :password ''}"
@@ -439,7 +326,7 @@
 
 
 (defn make-statements-list [db]
-  (-> (get-in @db [:db :statements])))
+  (-> (get-in db [:db :statements])))
 
 
 (defn format-floats [m]

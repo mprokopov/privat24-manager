@@ -3,11 +3,11 @@
             [cheshire.core :as cheshire]
             [privat-manager.privat.api :as api]))
 
-(defn logout! [session]
+(defn logout! [app-db]
   (let [{status :status} (api/post {:uri "auth/removeSession"
-                                    :body {"sessionId" (get-in @session [:session :id])}})]
+                                    :body {"sessionId" (get-in @app-db [:privat :session :id])}})]
     (when (= 200 status)
-      (swap! session assoc :session nil))))
+      (swap! app-db assoc-in [:privat :session] nil))))
 
 (defn auth [creds]
   (let [{app-id :app-id app-secret :app-secret} @creds
@@ -61,5 +61,5 @@
 
 (defn authorized?
   "ROLE_P24_BUSINESS should be under [:session :roles] atom"
-  [creds]
-  (some #(= % "ROLE_P24_BUSINESS") (get-in @creds [:session :roles])))
+  [privat]
+  (some #(= % "ROLE_P24_BUSINESS") (get-in privat [:session :roles])))
