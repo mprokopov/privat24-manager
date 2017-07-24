@@ -22,7 +22,8 @@
             [clj-time.format :as time.format]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [clojure.string :as str])
-  (:import java.util.Locale))
+  (:import java.util.Locale)
+  (:gen-class))
 
 (declare i18n)
 
@@ -139,7 +140,7 @@
 
 
 (defn parse-edrpou-statements []
-  (let [statements (get-in @manager [:db :statements])]
+  (let [statements (get-in @manager [:db :mstatements])]
     (if statements
      [:table.table
       [:thead
@@ -148,7 +149,7 @@
         [:th "ЕДРПОУ"]
         [:th "Поставщик"]
         [:th "ЕДРПОУ"]]]
-      (for [statement (map privat.util/parse-statement statements)]
+      (for [statement statements] 
         [:tr
          [:td (get-in statement [:debit :name])]
          [:td (get-in statement [:debit :edrpou])]
@@ -232,14 +233,16 @@
 (defn statements-index [& params]
   (let [statements (get-in @manager [:db :mstatements])]
     (template
-     (if (privat.auth/authorized? privat)
-       [:div
-        (date-form)
+       [:div.row
+        (if (privat.auth/authorized? privat)
+          (date-form)
+          [:div.col-md-6.alert.alert-danger "необходима авторизация для загрузки выписок"])
+            ;; [:form {:action "/login" :method :post}
+            ;;   [:input.btn.btn-primary {:type :submit :value "Авторизоваться"}]]])
         [:div.clearfix]
         (let [f (fn [statement i]
                   (let [{:keys[receipt amount refp payment purpose debit credit date payee payer recognized comment]} statement]
                     [:tr
-                     [:td (when recognized [:i.fa.fa-check-square])]
                      [:td
                       [:article.media.event
                        (let [dt (time.format/unparse (time.format/formatter "dd-MMM") date)
@@ -251,13 +254,12 @@
                          ;[:a.title comment])]]]
                      [:td amount]
                      [:td comment]
-                     [:td  " " payee payer]
+                     [:td (when recognized [:i.fa.fa-check-square]) " " payee payer]
                      [:td purpose]]))]
           (x-panel (str "Выписки " (count statements))
                    [:table.table
                     [:thead
                      [:tr
-                      [:th]
                       [:th.col-md-1 "Дата"]
                       [:th "Сумма"]
                       [:th.col-md-2 "Тип"]
@@ -265,8 +267,8 @@
                       [:th "Назначение"]]]
                     
                     [:tbody
-                     (map f statements (iterate inc 0))]]))]
-       [:div "необходима авторизация для загрузки выписок"]))))
+                     (map f statements (iterate inc 0))]]))])))
+       
 
 (defn paging-statements [id]
    (let [statements (get-in @app-db [:manager :db :mstatements])
@@ -305,24 +307,36 @@
                 [:div.col-md-6
                   [:h3 "Дебитор"]
                   (utils/map-to-html-list debit)]
-                [:div.clearfix]
+                [:div.clearfix
+                 (utils/map-to-html-list (privat.util/render-manager-statement statement))]
                 [:div.divider]
                 [:div.controls.row
                   (paging-statements index)]])])))
 
-(defn post-statement [id]
-  (let [statement (nth (get-in @app-db [:manager :db :statements]) id)
-        ;bid (get @db :business-id)
-        {status :status headers :headers} (privat.util/post statement manager)]
+;; (defn post-statement [id]
+;;   (let [statement (nth (get-in @app-db [:manager :db :statements]) id)
+;;         ;bid (get @db :business-id)
+;;         {status :status headers :headers} (privat.util/post statement manager)]
+;;     (template
+;;      (if (= status 201)
+;;        [:div
+;;         [:h1 "Успешно создано!"]
+;;         [:p (get headers "Location")]]
+;;         ;[:a {:href "http://manager.it-premium.local:8080/payment-view?Key=4bf84e58-013d-413b-88c0-99454c23b119&FileID=937914e4-5686-4eec-ba21-474b1c0f982e"} "посмотреть"]]
+;;       [:h1 "Произошла ошибка при создании!"])
+;;      (paging-statements id))))
+
+(defn post-statement2 [id]
+  (let [statement (nth (get-in @app-db [:manager :db :mstatements]) id)
+        {status :status headers :headers} (privat.util/post2 statement manager)]
     (template
      (if (= status 201)
        [:div
         [:h1 "Успешно создано!"]
         [:p (get headers "Location")]]
-        ;[:a {:href "http://manager.it-premium.local:8080/payment-view?Key=4bf84e58-013d-413b-88c0-99454c23b119&FileID=937914e4-5686-4eec-ba21-474b1c0f982e"} "посмотреть"]]
-      [:h1 "Произошла ошибка при создании!"])
+                                        ;[:a {:href "http://manager.it-premium.local:8080/payment-view?Key=4bf84e58-013d-413b-88c0-99454c23b119&FileID=937914e4-5686-4eec-ba21-474b1c0f982e"} "посмотреть"]]
+       [:h1 "Произошла ошибка при создании!"])
      (paging-statements id))))
-
 
 (defn fetch-suppliers []
   (do
@@ -399,6 +413,34 @@
     (utils/map-to-html-list
       (privat.auth/auth-p24 privat)))))
 
+(defn rests-index [& params]
+  (let [rests (get-in @app-db [:manager :db :rests])]
+    (template [:h1 "Остатки "]
+              [:div
+                (date-form)
+                [:table.table
+                 [:tr
+                  [:th "Дата"]
+                  [:th "Ушло"]
+                  [:th "Пришло"]
+                  [:th "Вх. остаток"]
+                  [:th "Исх. остаток"]]
+                 (for [r rests
+                       :let [{:keys [date inrest outrest debit credit]} (privat.util/format-floats r)]]
+                   [:tr
+                     [:td (time.format/unparse (time.format/formatter "dd MMMM YYYY") date)]
+                     [:td debit]
+                     [:td credit]
+                     [:td inrest]
+                     [:td outrest]])]]))) 
+
+(defn fetch-rests! [stdate endate]
+  (swap! manager assoc-in [:db :rests]
+    (->>
+     (privat.api/get-rests privat stdate endate)
+     (mapv privat.util/parse-rest)
+     (sort-by :date))))
+
 (defn with-redirect [f to]
   (do
     f
@@ -416,18 +458,21 @@
            (GET "/:uuid" [uuid] (single-supplier uuid)) 
            (POST "/:uuid" [uuid edrpou] (update-supplier uuid {:edrpou edrpou})) 
            (POST "/" [] (fetch-suppliers)))
+  (context "/rests" []
+           (GET "/" [] rests-index)
+           (POST "/" [stdate endate] (with-redirect (fetch-rests! stdate endate) "/rests")))
   (context "/settings" []
    (GET "/load" [data] (with-redirect (config/load-cached-db (keyword data) app-db) "/accounts"))
    (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/accounts")))
   (GET "/accounts" [] settings)
   (POST "/accounts" [account] (load-account account))
   (POST "/login" [] login-step2)
-  (GET "/auth/logout" [] (with-redirect (privat.auth/logout privat) "/accounts"))
+  (GET "/auth/logout" [] (with-redirect (privat.auth/logout! privat) "/accounts"))
   (context "/api" [])
   (context "/statements" []
            (GET "/" [] statements-index)
            (POST "/" [stdate endate] (fetch-statements stdate endate))
-           (POST "/:id" [id :<< as-int] (post-statement id))
+           (POST "/:id" [id :<< as-int] (post-statement2 id))
            (GET "/:id" [id :<< as-int] (single-statement id))))
 
 
@@ -453,4 +498,7 @@
 
 (defn restart []
   (stop-dev)
+  (start-dev))
+
+(defn -main [& args]
   (start-dev))

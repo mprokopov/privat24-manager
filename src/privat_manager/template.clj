@@ -23,12 +23,13 @@
   [:div#sidebar-menu.main_menu_side.hidden-print.main_menu
    [:div.menu_section
     [:h3 "Menu"]
-    (let [{:keys [customers suppliers statements]} (get @db :db)]
+    (let [{:keys [customers suppliers mstatements rests]} (get @db :db)]
       [:ul.nav.side-menu
        [:li
         [:a [:i.fa.fa-home] "Privat24" [:span.fa.fa-chevron-down]]
         [:ul.nav.child_menu {:style "display: block;"}
-         [:li [:a {:href "/statements"} (str "Выписки " (count statements))]]]]
+         [:li [:a {:href "/statements"} (str "Выписки " (count mstatements))]]
+         [:li [:a {:href "/rests"} (str "Остатки " (count rests))]]]]
        [:li
         [:a [:i.fa.fa-book] "Manager" [:span.fa.fa-chevron-down]]
         [:ul.nav.child_menu {:style "display: block;"}

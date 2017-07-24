@@ -35,3 +35,11 @@
                             "stdate" stdate ;"01.05.2017"
                             "endate" endate}}))
                                         ;"10.05.2017"}}))
+
+(defn get-rests [session stdate endate]
+  (get-body {:uri "p24b/rests"
+             :session session
+             :query-params {"acc" (:bank-account-number @session)
+                            "showInf" true
+                            "stdate" stdate ;"01.05.2017"
+                            "endate" endate}}))

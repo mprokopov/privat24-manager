@@ -3,10 +3,10 @@
             [cheshire.core :as cheshire]
             [privat-manager.privat.api :as api]))
 
-(defn logout [session]
-  (let [resp (api/post {:uri "auth/removeSession"
-                        :body {"sessionId" (get-in @session [:session :id])}})]
-    (when (= 200 (get resp :status))
+(defn logout! [session]
+  (let [{status :status} (api/post {:uri "auth/removeSession"
+                                    :body {"sessionId" (get-in @session [:session :id])}})]
+    (when (= 200 status)
       (swap! session assoc :session nil))))
 
 (defn auth [creds]
