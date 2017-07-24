@@ -104,7 +104,7 @@
 (defn settings [app-db]
   (let [accounts #{"puzko" "itservice" "super-truper"}
         f (fn [e] [:option {:value e :selected (when (= e (:business-id @app-db)) true)} e])
-        {roles :roles} @privat]
+        {roles :roles} (:privat @app-db)]
     (template
      [:div
         [:div.col-md-3
@@ -121,8 +121,7 @@
            [:h2 "Загрузить из кеша"]
            [:a.btn.btn-default {:href "/settings/load?data=customers"} "Покупателей"]
            [:a.btn.btn-default {:href "/settings/load?data=suppliers"} "Поставщиков"]
-           [:br]
-           [:br]
+           [:div.divider]
            [:h2 "Сохранить кеш"]
            [:a.btn.btn-danger {:href "/settings/save?data=customers"} "Покупателей"]
            [:a.btn.btn-danger {:href "/settings/save?data=suppliers"} "Поставщиков"]])]
@@ -387,12 +386,13 @@
      [:p "Updated"
       (manager.api/api-update! uuid update-map manager)])))
 
-(defn login-step2 [& req]
+(defn login-step2 [app-db]
  (template
   (do
-    (privat.auth/auth privat)
-    (utils/map-to-html-list
-      (privat.auth/auth-p24 privat)))))
+    (privat.auth/auth app-db)
+    (-> (privat.auth/auth-p24 app-db)
+        (get-in [:privat :session])
+        utils/map-to-html-list))))
 
 (defn rests-index [app-db]
   (let [rests (get-in @app-db [:manager :db :rests])]
@@ -420,7 +420,8 @@
     (->>
      (privat.api/get-rests (:privat @app-db) stdate endate)
      (mapv privat.util/parse-rest)
-     (sort-by :date))))
+     (sort-by :date)
+     reverse)))
 
 (defn with-redirect [f to]
   (do
@@ -447,7 +448,7 @@
    (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/accounts")))
   (GET "/accounts" [] (settings app-db))
   (POST "/accounts" [account] (load-account! account app-db))
-  (POST "/login" [] login-step2)
+  (POST "/login" [] (login-step2 app-db))
   (GET "/auth/logout" [] (with-redirect (privat.auth/logout! app-db) "/accounts"))
   (context "/api" [])
   (context "/statements" []

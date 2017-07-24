@@ -9,30 +9,30 @@
     (when (= 200 status)
       (swap! app-db assoc-in [:privat :session] nil))))
 
-(defn auth [creds]
-  (let [{app-id :app-id app-secret :app-secret} @creds
+(defn auth [app-db]
+  (let [{app-id :app-id app-secret :app-secret} (:privat @app-db)
         {body :body status :status} (api/post {:uri "auth/createSession"
                                                :body {"clientId" app-id
                                                       "clientSecret" app-secret}})] 
     (when (= status 200)
       (let [{id :id roles :roles expires :expiresIn} (cheshire/parse-string body true)]
-       (swap! creds assoc :session {:id id :roles roles :expires expires}))))) 
+        (swap! app-db assoc-in [:privat :session] {:id id :roles roles :expires expires}))))) 
 
 
 (defn auth-p24
   "creds atom with :privat :session structure"
-  [creds]
-  (if-let [id (get-in @creds [:session :id])]
-    (let [{login :login password :password} @creds
+  [app-db]
+  (if-let [id (get-in @app-db [:privat :session :id])]
+    (let [{login :login password :password} (:privat @app-db)
           {body :body status :status} (api/post {:uri "p24BusinessAuth/createSession"
                                                  :body {"sessionId" id "login" login "password" password}})]
       (when (= status 200)
         (let [{:keys [clientId message roles expiresIn id]} (cheshire/parse-string body true)]
-          (swap! creds assoc :session {:client-id clientId
-                                       :id id
-                                       :message message
-                                       :expires expiresIn
-                                       :roles roles}))))
+          (swap! app-db assoc-in [:privat :session] {:client-id clientId
+                                                     :id id
+                                                     :message message
+                                                     :expires expiresIn
+                                                     :roles roles}))))
     (print "auth required")))
 
 (defn send-otp [creds]
