@@ -38,6 +38,14 @@
         body (get request :body)]
     body))
 
+(defn fetch-uuid-item2! [uuid settings]
+  (let [{login :login password :password} @settings]
+     (client/get (item-link2 uuid settings)
+                 {:as :json
+                  :async? true
+                  :basic-auth [login password]}
+                 (fn [response] (get response :body))
+                 (fn [raise] (.getMessage raise)))))
 
 (defn api-update!
   "update map"
@@ -63,7 +71,23 @@
                    {:basic-auth [login password]})))
 
 
-(defn populate-db! [k settings]
+(defn populate-db2!
+  "asyncronous item fetch for customers, suppliers DB"
+  [k app-db]
+  (let [db (get-in @app-db [:db k])
+        {login :login password :password} @app-db
+        f (fn [[item _]] (client/get (item-link2 (name item) app-db)
+                                    {:as :json
+                                     :async? true
+                                     :basic-auth [login password]}
+                                    (fn [response] (swap! app-db assoc-in [:db k (keyword item)] (get response :body)))
+                                    ;(fn [response] (print response "item " item))
+                                    (fn [raise] (.getMessage raise))))]
+    (run! f db)))
+
+(defn populate-db!
+  "fetch item for every DB uuid and update entry"
+  [k settings]
   (let [db (get-in @settings [:db k])
         db2 (reduce #(assoc %1 (-> %2 key keyword) (fetch-uuid-item! (-> %2 key name) settings)) {} db)]
     (swap! settings assoc-in [:db k] db2)

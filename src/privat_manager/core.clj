@@ -4,10 +4,10 @@
             [privat-manager.privat.auth :as privat.auth]
             [privat-manager.privat.util :as privat.util]
             [privat-manager.utils :as utils]
+            [privat-manager.template :refer [x-panel session-info sidebar-menu]]
             [privat-manager.manager.api :as manager.api]
             [compojure.core :refer [defroutes GET POST context]]
             [compojure.coercions :refer [as-int as-uuid]]
-            [clj-http.client :as client]
             [clj-time.core :as time]
             [clj-time.coerce :as time.coerce]
             [privat-manager.config :as config]
@@ -21,7 +21,10 @@
             [ring.adapter.jetty :refer [run-jetty]]
             [clj-time.format :as time.format]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
-            [clojure.string :as str]))
+            [clojure.string :as str])
+  (:import java.util.Locale))
+
+(declare i18n)
 
 
 (def app-db (atom {:business-id ""
@@ -32,35 +35,8 @@
 (def manager (lentes/derive (lentes/key :manager) app-db))
 
 
-(defn x-panel [title body]
-  [:div.x_panel
-   [:div.x_title
-    [:h2 title]
-    [:ul.nav.navbar-right.panel_toolbox
-     [:li
-      [:a.close-link [:i.fa.fa-close]]]]
-    [:div.clearfix]]
-   [:div.x_content body]])
 
-(defn sidebar-menu []
-  [:div#sidebar-menu.main_menu_side.hidden-print.main_menu
-   [:div.menu_section
-    [:h3 "Menu"]
-    (let [{:keys [customers suppliers statements]} (get @manager :db)]
-     [:ul.nav.side-menu
-      [:li
-       [:a [:i.fa.fa-home] "Privat24" [:span.fa.fa-chevron-down]]
-       [:ul.nav.child_menu {:style "display: block;"}
-         [:li [:a {:href "/statements"} (str "Выписки " (count statements))]]]]
-      [:li
-       [:a [:i.fa.fa-book] "Manager" [:span.fa.fa-chevron-down]]
-       [:ul.nav.child_menu {:style "display: block;"}
-        [:li [:a {:href "/customers"} (str "Клиенты " (count customers))]]
-        [:li [:a {:href "/suppliers"} (str "Поставщики " (count suppliers))]]]]
-      [:li
-       [:a [:i.fa.fa-sliders] "Управление" [:span.fa.fa-chevron-down]]
-       [:ul.nav.child_menu {:style "display: block;"}
-        [:li [:a {:href "/accounts"} "Настройки"]]]]])]])
+
 (defn template
   "шаблон этого HTML"
   [& args]
@@ -90,7 +66,7 @@
            [:span "Предприятие"]
            [:h2 (:business-id @app-db)]]]
          [:br]
-         (sidebar-menu)]]
+         (sidebar-menu manager)]]
        [:div.top_nav
         [:div.nav_menu
          [:nav
@@ -126,12 +102,6 @@
    [:input.btn.btn-primary {:type :submit :value "Пройти авторизацию Privat24"}]])
 
 
-(defn session-info []
-  (let [{{roles :roles} :session bid :business-id} @privat]
-    [:div
-     [:h2 "Бизнес: " bid]
-     [:h4 "Роли: " (clojure.string/join "," roles)]
-     [:a.btn.btn-default "Выйти"]]))
 
 
 (defn settings [& params]
@@ -163,7 +133,7 @@
          (x-panel "Приват24"
           (if @privat
             (if (privat.auth/authorized? privat)
-              (session-info)
+              (session-info privat)
               (login-form))
             "не загружены настройки"))]])))
 
@@ -252,36 +222,79 @@
 (defn fetch-statements [stdate endate]
   (do
    (swap! manager assoc-in [:db :statements] (privat.api/get-statements privat stdate endate))
+   (swap! manager assoc-in [:db :mstatements] (->> (privat.util/make-statements-list manager)
+                                                   (map privat.util/transform->manager2)
+                                                   (map #(privat.util/make-manager-statement % manager))
+                                                   (sort-by :date)))
    (ring.util.response/redirect "/statements")))
 
 
 (defn statements-index [& params]
-  (let [statements (get-in @manager [:db :statements])]
+  (let [statements (get-in @manager [:db :mstatements])]
     (template
      (if (privat.auth/authorized? privat)
        [:div
-         (date-form)
-         [:div.clearfix]
-         (let [f (fn [statement i]
-                   (let [{:keys[receipt amount refp payment purpose date]} (privat.util/parse-statement statement)]
-                       [:tr
-                        [:td [:a {:href (str "/statements/" i)} (time.format/unparse (time.format/formatters :date) date)]]
-                        [:td amount]
-                        [:td purpose]]))]
-           (x-panel (str "Выписки " (count statements))
-            [:table.table
-             [:thead
-              [:tr
-               [:th "Дата"]
-               [:th "Сумма"]
-               [:th "Назначение"]]]
-             
-             [:tbody
-              (map f statements (iterate inc 0))]]))]
+        (date-form)
+        [:div.clearfix]
+        (let [f (fn [statement i]
+                  (let [{:keys[receipt amount refp payment purpose debit credit date payee payer recognized comment]} statement]
+                    [:tr
+                     [:td (when recognized [:i.fa.fa-check-square])]
+                     [:td
+                      [:article.media.event
+                       (let [dt (time.format/unparse (time.format/formatter "dd-MMM") date)
+                             [day month] (str/split dt #"\-")]
+                        [:a.date.pull-left {:href (str "/statements/" i)}
+                          [:p.month month]
+                          [:p.day day]])]]
+                       ;[:div.media-body
+                         ;[:a.title comment])]]]
+                     [:td amount]
+                     [:td comment]
+                     [:td  " " payee payer]
+                     [:td purpose]]))]
+          (x-panel (str "Выписки " (count statements))
+                   [:table.table
+                    [:thead
+                     [:tr
+                      [:th]
+                      [:th.col-md-1 "Дата"]
+                      [:th "Сумма"]
+                      [:th.col-md-2 "Тип"]
+                      [:th.col-md-3 "Контрагент"]
+                      [:th "Назначение"]]]
+                    
+                    [:tbody
+                     (map f statements (iterate inc 0))]]))]
        [:div "необходима авторизация для загрузки выписок"]))))
 
+;; (defn statements-index2 [& params]
+;;   (let [statements (sort-by :date (get-in @manager [:db :statements]))]
+;;     (template
+;;      (if (privat.auth/authorized? privat)
+;;        [:div
+;;          (date-form)
+;;          [:div.clearfix]
+;;          (let [f (fn [statement i]
+;;                    (let [{:keys[receipt amount refp payment purpose date]} (privat.util/parse-statement statement)]
+;;                        [:tr
+;;                         [:td [:a {:href (str "/statements/" i)} (time.format/unparse (time.format/formatters :date) date)]]
+;;                         [:td amount]
+;;                         [:td purpose]]))]
+;;            (x-panel (str "Выписки " (count statements))
+;;             [:table.table
+;;              [:thead
+;;               [:tr
+;;                [:th "Дата"]
+;;                [:th "Сумма"]
+;;                [:th "Назначение"]]]
+             
+;;              [:tbody
+;;               (map f statements (iterate inc 0))]]))]
+;;        [:div "необходима авторизация для загрузки выписок"]))))
+
 (defn paging-statements [id]
-   (let [statements (get-in @app-db [:manager :db :statements])
+   (let [statements (get-in @app-db [:manager :db :mstatements])
          has-prev? (> id 0) 
          has-next? (< (+ id 1) (count statements))]
     [:div
@@ -290,39 +303,72 @@
       (when has-next?
         [:a.btn.btn-default {:href (str "/statements/" (inc id))} "следующий"])]))
 
-(def i18n {:taxes "налоги"
-           :operational-expences-bank "банковские расходы"
-           :customer "оплата от клиента"
-           :supplier "оплата поставщику"
-           :salary "зарплата"
-           :transfer "перевод между счетами"
-           :agent-income "другой доход"
-           :transfer-from-cash "инкассация выручки"
-           :phone "платеж за связь"})
+;; (def i18n {:taxes "налоги"
+;;            :operational-expences-bank "банковские расходы"
+;;            :customer "оплата от клиента"
+;;            :supplier "оплата поставщику"
+;;            :salary "зарплата"
+;;            :transfer "перевод между счетами"
+;;            :agent-income "другой доход"
+;;            :transfer-from-cash "инкассация выручки"
+;;            :receipt "получение"
+;;            :phone "платеж за связь"})
 
-(defn single-statement [id]
-  (let [statements (get-in @app-db [:manager :db :statements])
-        statement (nth statements id)
-        {:keys [date refp purpose amount payment receipt debit credit payer payee recognized]} (-> statement
-                                                                                                   privat.util/parse-statement
-                                                                                                   privat.util/category-by-purpose
-                                                                                                   (privat.util/append-uuid manager))]
+(defn single-statement [index]
+  (let [statement (-> (get-in @app-db [:manager :db :mstatements])
+                      (nth index))
+        {:keys [credit date debit amount comment recognized purpose payee payer]} statement
+        custom-formatter (time.format/with-locale (time.format/formatter "dd.MM.yy в HH:mm") (Locale. "ru"))
+        custom-formatter2 (time.format/formatter "dd.MM.yy")
+        mdate2 (time.format/unparse custom-formatter2 date)
+        mdate (time.format/unparse custom-formatter date)
+        label (fn [statement] [:span.label.label-primary (-> (select-keys statement [:payment :receipt :transfer]) first key)])]
     (template
-     [:div.col-md-6
-      (x-panel
-       [:div
-        (time.format/unparse (time.format/formatters :date) date) " | " (get i18n receipt) (get i18n payment) " | " payer payee " "
-         (when recognized [:i.fa.fa-check-square])]
-       [:div
-        [:h2 purpose]
-        [:h2 amount]
-        [:p [:b (:name debit)] " | " (:edrpou debit)]
-        [:p [:b (:name credit)] " | " (:edrpou credit)]
-        [:div.controls
-          (paging-statements id)]
-        [:div.controls
-          [:form {:method :POST}
-           [:input.btn.btn-danger {:type "submit" :value "Отправить"}]]]])])))
+     [:div.col-md-10
+      (x-panel [:div (when recognized [:i.fa.fa-check-square]) " банковская выписка от " mdate2] 
+               [:div
+                [:div.jumbotron
+                 [:h1 payee payer " " comment " " amount]
+                 [:h1 mdate] 
+                 [:p (label statement) " " purpose]
+                 [:div.controls
+                   [:form {:method :POST}
+                     [:input.btn.btn-danger {:type "submit" :value "Отправить в Manager"}]]]]
+
+                [:div.col-md-6
+                  [:h3 "Кредитор"]
+                  (utils/map-to-html-list credit)]
+                [:div.col-md-6
+                  [:h3 "Дебитор"]
+                  (utils/map-to-html-list debit)]
+                [:div.clearfix]
+                [:div.divider]
+                [:div.controls.row
+                  (paging-statements index)]])])))
+
+;; (defn single-statement2 [id]
+;;   (let [statements (get-in @app-db [:manager :db :statements])
+;;         statement (nth statements id)
+;;         {:keys [date refp purpose amount payment receipt debit credit payer payee recognized]} (-> statement
+;;                                                                                                    privat.util/parse-statement
+;;                                                                                                    privat.util/assoc-transaction-type
+;;                                                                                                    (privat.util/append-uuid manager))]
+;;     (template
+;;      [:div.col-md-6
+;;       (x-panel
+;;        [:div
+;;         (time.format/unparse (time.format/formatters :date) date) " | " (get i18n receipt) (get i18n payment) " | " payer payee " "
+;;          (when recognized [:i.fa.fa-check-square])]
+;;        [:div
+;;         [:h2 purpose]
+;;         [:h2 amount]
+;;         [:p [:b (:name debit)] " | " (:edrpou debit)]
+;;         [:p [:b (:name credit)] " | " (:edrpou credit)]
+;;         [:div.controls
+;;           (paging-statements id)]
+;;         [:div.controls
+;;           [:form {:method :POST}
+;;            [:input.btn.btn-danger {:type "submit" :value "Отправить"}]]]])])))
 
 
 (defn post-statement [id]
@@ -436,6 +482,7 @@
   (GET "/accounts" [] settings)
   (POST "/accounts" [account] (load-account account))
   (POST "/login" [] login-step2)
+  (context "/api" [])
   (context "/statements" []
            (GET "/" [] statements-index)
            (POST "/" [stdate endate] (fetch-statements stdate endate))

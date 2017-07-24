@@ -8,46 +8,218 @@
 (declare wrap-transfer my-format get-supplier-by-edrpou get-uuid-by-key get-customer-by-edrpou check-payment-purpose check-receipt-purpose parse-statement)
 
 
-(defn wrap-payment [{:keys [amount credit-uuid debit-uuid tax date payee refp purpose extra]}]
+(defrecord BankAccount [name edrpou bank-mfo-number bank-account-number])
+;; debit and credit are BankAccount records
+
+(defprotocol BankStatementType
+  (get-type [this])
+  (get-purpose [this]))
+
+(defprotocol Taxable
+  (tax-uuid [this db]))
+
+(defprotocol Manager
+  (parent-url [this db])
+  (render->manager [this db]))
+
+(defprotocol Accountable
+  (credit-uuid [this db] "credit uuid")
+  (debit-uuid [this db] "debit uuid"))
+
+(defn wrap-payment [{:keys [amount credit debit tax date payee refp purpose extra]}]
   (let [my-amount (my-format "%.2f" (if (< 0  amount) amount (- amount)) "en-US")
         payment {"Date" (time.format/unparse (time.format/formatters :date) date)
                  "Payee" payee
-                 "CreditAccount" (when credit-uuid (name credit-uuid))
+                 "CreditAccount" (name credit)
                  "Notes" (str "Reference: " refp)
                  "BankClearStatus" "Cleared"
-                 "Lines" [{"Account" (when debit-uuid (name debit-uuid))
+                 "Lines" [{"Account" (name debit)
                            "Description" purpose
                            "Amount" my-amount}]}]
     (cond-> payment
       tax (assoc-in ["Lines" 0 "TaxCode"] tax)
       extra (update "Notes" str " " extra))))
 
-(defn wrap-receipt [{:keys [amount credit-uuid debit-uuid tax date payer refp purpose]}]
+(defn wrap-receipt [{:keys [amount credit debit tax date payer refp purpose]}]
   (let [my-amount (my-format "%.2f" (if (< 0  amount) amount (- amount)) "en-US")
         payment {"Date" (time.format/unparse (time.format/formatters :date) date)
                  "Payer" payer
-                 "DebitAccount" (when credit-uuid (name credit-uuid))
+                 "DebitAccount" (name credit)
                  "Notes" (str "Reference: " refp)
                  "BankClearStatus" "Cleared"
-                 "Lines" [{"DebitAccount" (when debit-uuid (name debit-uuid))
+                 "Lines" [{"DebitAccount" (name debit)
                            "Description" purpose
                            "Amount" my-amount}]}]
    (cond-> payment
      tax (assoc-in ["Lines" 0 "TaxCode"] tax))))
 
-(defn wrap-transfer [{:keys [amount credit-uuid debit-uuid tax date refp]}]
+(defn wrap-transfer [{:keys [amount credit debit tax date payer refp]}]
   (let [my-amount (my-format "%.2f" (if (< 0  amount) amount (- amount)) "en-US")
         payment {"Date" (time.format/unparse (time.format/formatters :date) date)
-                 "CreditAccount" credit-uuid
-                 "DebitAccount" debit-uuid
+                 "CreditAccount" credit
+                 "DebitAccount" debit
                  "Notes" (str "Reference: " refp)
                  "DebitClearStatus" "Cleared"
                  "CreditClearStatus" "Cleared"
                  "CreditAmount" my-amount}]
     payment))
 
+(defrecord SalaryPayment [debit credit date purpose refp]
+  Accountable
+  Manager
+  (render->manager [this db] (wrap-payment (assoc this
+                                            :credit (credit-uuid this db)
+                                            :amount (- (:amount this))
+                                            :debit (debit-uuid this db)
+                                            :payee "Зарплата")))
+
+  (debit-uuid [this db] "")
+  (credit-uuid [this db] (:bank-account-uuid @db)))
+
+(defrecord SupplierPayment [debit credit date purpose refp]
+  Accountable
+  Taxable
+  Manager
+  (render->manager [this db]
+    (wrap-payment (assoc this
+                         :credit (credit-uuid this db)
+                         :amount (- (get this :amount))
+                         :tax (tax-uuid this db)
+                         :extra (get-in this [:credit :name])
+                         :payee
+                         (or
+                          (->
+                           (get-in this [:credit :edrpou])
+                           (get-supplier-by-edrpou db)
+                           val
+                           (get :Name))
+                          (get-in this [:credit :name]))
+                         :debit (debit-uuid this db))))
+
+  (tax-uuid [this db] (get @db :tax-uuid))
+
+  (credit-uuid [this db]
+    (let [edrpou (get-in this [:credit :edrpou])]
+      (key (get-supplier-by-edrpou edrpou db))))
+
+  (debit-uuid [this db] (:bank-account-uuid @db)))
+
+(defrecord OperationalExpensesPayment [debit credit date purpose refp]
+ Accountable
+ Manager
+ (render->manager [this db]
+   (wrap-payment (assoc this
+                        :credit (credit-uuid this db)
+                        :amount (- (get this :amount))
+                        :payee "Приватбанк"
+                        ;; :tax (tax-uuid this db)
+                        :debit (debit-uuid this db))))
+
+ (credit-uuid [this db] (:bank-account-uuid @db))
+
+ (debit-uuid [this db] (get-uuid-by-key :operational-expences-bank db)))
+
+(defrecord AgentIncome [debit credit date purpose refp]
+  Accountable
+  Taxable
+  Manager
+  (render->manager [this db]
+    (wrap-receipt (assoc this
+                         :credit (credit-uuid this db)
+                         :amount (get this :amount)
+                         :payee (get-in @db [:debit :name])
+                         :tax (tax-uuid this db)
+                         :debit (debit-uuid this db))))
+
+  (credit-uuid [this db] (:bank-account-uuid @db))
+
+  (tax-uuid [this db] (get @db :tax-uuid))
+
+  (debit-uuid [this db] (get-uuid-by-key :agent-income db)))
+
+(defrecord PhoneExpensesPayment [debit credit date purpose refp]
+  Accountable
+  Taxable
+  Manager
+  (render->manager [this db]
+    (wrap-payment (assoc this
+                         :credit (credit-uuid this db)
+                         :amount (- (get this :amount))
+                         :tax (tax-uuid this db)
+                         :payee "Астелит"
+                         :debit (debit-uuid this db))))
+
+  (credit-uuid [this db] (:bank-account-uuid @db))
+
+  (tax-uuid [this db] (get @db :tax-uuid))
+
+  (debit-uuid [this db] (get-uuid-by-key :phone db)))
+
+(defrecord TaxExpenses [debit credit date purpose refp]
+  Accountable
+  Manager
+  (render->manager [this db] (wrap-payment (assoc this
+                                                  :credit (credit-uuid this db)
+                                                  :amount (- (get this :amount))
+                                                  :payee "Налоговая"
+                                                  :debit (debit-uuid this db))))
+
+  (credit-uuid [this db] (:bank-account-uuid @db))
+  (debit-uuid [this db] (get-uuid-by-key :taxes db)))
+
+(defrecord CustomerReceipt [debit credit date purpose refp]
+ Accountable
+ Taxable
+ Manager
+ (render->manager [this db]
+   (wrap-receipt (assoc this
+                        :credit (credit-uuid this db)
+                        :amount (- (get this :amount))
+                        :tax (tax-uuid this db)
+                        :payer (or
+                                (-> (get-in this [:debit :edrpou])
+                                    (get-customer-by-edrpou db)
+                                    val
+                                    (get :Name))
+                                (get-in this [:debit :name]))
+                        :debit (debit-uuid this db))))
+
+ (tax-uuid [this db] (get @db :tax-uuid))
+
+ (credit-uuid [this db]
+   (let [edrpou (get-in this [:debit :edrpou])]
+    (key (get-customer-by-edrpou edrpou db))))
+
+ (debit-uuid [this db] (:bank-account-uuid @db)))
+
+(defrecord FromBankTransfer [debit credit date purpose refp]
+  Accountable
+  Manager
+  (render->manager [this db]
+    (wrap-transfer (assoc this
+                          :credit (credit-uuid this db)
+                          :amount (- (get this :amount))
+                          :debit (debit-uuid this db))))
+
+  (debit-uuid [this db] (:bank-account-uuid @db))
+
+  (credit-uuid [this db] (:cash-account-uuid @db)))
+
+(defrecord ToBankTransfer [debit credit date purpose refp]
+  Accountable
+  Manager
+  (render->manager [this db]
+    (wrap-transfer (assoc this
+                          :credit (credit-uuid this db)
+                          :amount (- (get this :amount))
+                          :debit (debit-uuid this db))))
+
+  (debit-uuid [this db] (:cash-account-uuid @db))
+
+  (credit-uuid [this db] (:bank-account-uuid @db)))
 
 (def custom-formatter (time.format/formatter "YYYYMMdd'T'HH:mm:ss"))
+
 
 (defn parse-account
   "returns map of credit or debit part of the statement"
@@ -65,6 +237,35 @@
   (if (> amount 0)
     :receipt
     :payment))
+
+
+(defrecord BankStatement [debit credit amount purpose date refp]
+  BankStatementType
+  (get-type [this] (get-statement-type this))
+  (get-purpose [this] (case (get-type this)
+                        :payment (check-payment-purpose (:purpose this))
+                        :receipt (check-receipt-purpose (:purpose this)))))
+
+(defn make-bank-statement [m]
+  (let [statement (parse-statement m)
+        {:keys [amount purpose debit credit date refp]} statement]
+    (->BankStatement (map->BankAccount debit) (map->BankAccount credit) amount purpose date refp)))
+
+(defn make-manager-statement [bank-statement]
+  (case (get-type bank-statement)
+    :payment (case (get-purpose bank-statement)
+               :operational-expences-bank (map->OperationalExpensesPayment bank-statement)
+               :salary (map->SalaryPayment bank-statement)
+               :phone (map->PhoneExpensesPayment bank-statement)
+               :transfer (map->FromBankTransfer bank-statement)
+               :taxes (map->TaxExpenses bank-statement)
+               :supplier (map->SupplierPayment bank-statement))
+    :receipt (case (get-purpose bank-statement)
+               :transfer (map->ToBankTransfer bank-statement)
+               :agent-income (map->AgentIncome bank-statement)
+               :customer (map->CustomerReceipt bank-statement))))
+
+(def transform->manager (comp make-manager-statement make-bank-statement))
 
 
 (defn check-payment-purpose
@@ -183,7 +384,7 @@
                nil)
     nil))
 
-(defn assoc-transaction-type
+(defn category-by-purpose
   "assoc parsed statement with category from parsed purpose"
   [parsed-statement]
   (let [statement-type (get-statement-type parsed-statement)]
@@ -191,12 +392,13 @@
       :receipt (assoc parsed-statement :receipt (check-receipt-purpose (:purpose parsed-statement)))
       :payment (assoc parsed-statement :payment (check-payment-purpose (:purpose parsed-statement)))
       nil)))
+  
 
 (defn parse-statement
   "parses privatbank statement and returns map for further processing"
   [statement]
   (let [statement (walk/stringify-keys statement)]
-   {:amount (Float/parseFloat (get-in statement ["amount" "@amt"]))
+   {:amount (Float. (get-in statement ["amount" "@amt"]))
     :refp (get-in statement ["info" "@refp"])
     :date (time.format/parse custom-formatter (get-in statement ["info" "@postdate"])) ;; @customerdate
     :purpose (get statement "purpose")
@@ -210,125 +412,49 @@
                    (Locale/getDefault))]
     (String/format locale fmt (into-array Object [n]))))
 
-(defmulti make-manager-statement (fn [m _] (select-keys m [:payment :receipt])))
+(defmulti make-manager-statement2 (fn [m _] (select-keys m [:payment :receipt])))
 
-(defmethod make-manager-statement
+(defmethod make-manager-statement2
   {:payment :operational-expences-bank}
   [statement db]
   (assoc statement
          :payee "Приватбанк"
-         :recognized true
-         :comment "оплата банковских расходов"
-         :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid @db)
-         :debit-uuid (get-uuid-by-key :operational-expences-bank db)))
+         :amount (- (get statement :amount))
+         :credit (:bank-account-uuid @db)
+         :debit (get-uuid-by-key :operational-expences-bank db)))
 
-(defmethod make-manager-statement
-  {:payment :phone}
-  [statement db]
-  (assoc statement
-         :payee "Астелит"
-         :recognized true
-         :comment "оплата расходов связи"
-         :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid @db)
-         :tax (get @db :tax-uuid)
-         :debit-uuid (get-uuid-by-key :phone db)))
-
-
-(defmethod make-manager-statement
-  {:payment :taxes}
-  [statement db]
-  (assoc statement
-         :payee "Налоговая"
-         :recognized true
-         :comment "оплата налогов"
-         :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid @db)
-         :debit-uuid (get-uuid-by-key :taxes db)))
-
-(defmethod make-manager-statement
-  {:payment :salary}
-  [statement db]
-  (assoc statement
-         :payee "Зарплата"
-         :recognized true
-         :comment "выплата зарплаты"
-         :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid @db)
-         :debit-uuid ""))
-
-(defmethod make-manager-statement
-  {:payment :transfer}
-  [statement db]
-  (-> statement
-      (dissoc :payment)
-      (assoc
-       :transfer :payment
-       :recognized true
-       :comment "снятие кеша"
-       :amount (Math/abs (get statement :amount))
-       :credit-uuid (:bank-account-uuid @db)
-       :debit-uuid (:cash-account-uuid @db)))) 
-
-(defmethod make-manager-statement
-  {:receipt :transfer}
-  [statement db]
-  (-> statement
-      (dissoc :receipt)
-      (assoc
-       :transfer :receipt
-       :recognized true
-       :comment "пополнение счета"
-       :amount (get statement :amount)
-       :debit-uuid (:bank-account-uuid @db)
-       :credit-uuid (:cash-account-uuid @db)))) 
-
-(defmethod make-manager-statement
+(defmethod make-manager-statement2
   {:payment :supplier}
   [statement db]
-  (let [edrpou (get-in statement [:credit :edrpou])
-        supplier (get-supplier-by-edrpou edrpou db)
-        supplier-name1 (get-in statement [:credit :name])
-        supplier-name2 (when supplier (get (val supplier) :Name))]
-   (assoc statement
-          :payee (or supplier-name2 supplier-name1) 
-          :tax (get @db :tax-uuid)
-          :recognized supplier-name2
-          :comment "оплата поставщику"
-          :extra (get-in statement [:credit :name])
-          :amount (Math/abs (get statement :amount))
-          :credit-uuid (key supplier)
-          :debit-uuid (:bank-account-uuid @db))))
+  (assoc statement
+         :payee (get-in statement [:credit :name])
+         :tax (get @db :tax-uuid)
+         :amount (- (get statement :amount))
+         :credit (let [edrpou (get-in statement [:credit :edrpou])]
+                   (key (get-supplier-by-edrpou edrpou db)))
+         :debit (:bank-account-uuid @db)))
 
-(defmethod make-manager-statement
+(defmethod make-manager-statement2
   {:receipt :customer}
   [statement db]
-  (let [edrpou (get-in statement [:debit :edrpou])
-        customer (get-customer-by-edrpou edrpou db)
-        customer-name1 (when customer (-> customer val :Name))
-        customer-name2 (get-in statement [:debit :name])]
-   (assoc statement
-          :payer (or customer-name1 customer-name2)
-          :recognized customer-name1
-          :tax (get @db :tax-uuid)
-          :comment "оплата покупателя"
-          :amount (get statement :amount)
-          :debit-uuid (when customer (key customer))
-          :credit-uuid (get @db :bank-account-uuid))))
+  (assoc statement
+         :payer (get-in statement [:debit :name])
+         :tax (get @db :tax-uuid)
+         :amount (get statement :amount)
+         :debit (let [edrpou (get-in statement [:debit :edrpou])]
+                   (key (get-customer-by-edrpou edrpou db)))
+         :credit (:bank-account-uuid @db)))
 
-(defmethod make-manager-statement
+(defmethod make-manager-statement2
   {:receipt :agent-income}
   [statement db]
   (assoc statement
-         :debit (get-uuid-by-key :agent-income db)
-         :credit-uuid (:bank-account-uuid @db)
-         :comment "агентский доход"
-         :recognized true
+         :debit (get-uuid-by-key :agent-income)
+         :credit (:bank-account-uuid @db)
          :payer (get-in statement [:debit :name])))
 
 (defmulti render-manager-statement (fn [m] (-> m
-                                                (select-keys [:payment :receipt :transfer])
+                                                (select-keys [:payment :receipt])
                                                 first
                                                 key)))
 
@@ -351,7 +477,7 @@
                "Account" credit-uuid}
         state {"Date" (time.format/unparse (time.format/formatters :date) date)
                "Notes" (str "Reference: " refp)
-
+               "BankClearStatus" "Cleared"
                "Lines" [(if tax-code (assoc lines "TaxCode" tax-code) lines)]}]
     (condp #(contains? %2 %1) statement
       :receipt
@@ -376,16 +502,6 @@
                             "CreditClearStatus" "Cleared"))
                  (assoc state "Payee" payee "CreditAccount" debit-uuid)))))
 
-(defmulti get-category-key
-  (fn [x] (-> (select-keys x [:payment :receipt :transfer])
-             first
-             key)))
-
-(defmethod get-category-key :payment [_] :payments)
-
-(defmethod get-category-key :receipt [_] :receipts)
-
-(defmethod get-category-key :transfer [_] :transfers)
 
 (defn statement-account
   "returns key for category depending on statement type
@@ -403,25 +519,7 @@
   [statement db]
   (let [state (-> statement
                   parse-statement
-                  assoc-transaction-type
+                  category-by-purpose
                   (append-uuid db))
         category-key (statement-account state)]
     (manager.api/api-post2! category-key (transform-statement state) db))) 
-
-(defn post2
-  "parses initial bank statement and makes POST to Manager API
-  db should contain {:login '' :password ''}"
-  [statement db]
-  (let [state (-> statement
-                  transform->manager2
-                  (make-manager-statement db))
-        category-key (get-category-key state)]
-    (manager.api/api-post2! category-key (render-manager-statement state) db))) 
-
-(defn get-statement-by-index [x db]
-  (let [statements (get-in @db [:db :statements])]
-    (nth statements x)))
-
-
-(defn make-statements-list [db]
-  (-> (get-in @db [:db :statements])))
