@@ -4,8 +4,10 @@
             [privat-manager.privat.api :as api]))
 
 (defn logout [session]
-  (api/post {:uri "auth/removeSession"
-             :body {"sessionId" (get-in @session [:session :id])}})) 
+  (let [resp (api/post {:uri "auth/removeSession"
+                        :body {"sessionId" (get-in @session [:session :id])}})]
+    (when (= 200 (get resp :status))
+      (swap! session assoc :session nil))))
 
 (defn auth [creds]
   (let [{app-id :app-id app-secret :app-secret} @creds

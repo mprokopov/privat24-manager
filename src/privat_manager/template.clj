@@ -16,7 +16,7 @@
     [:div
      [:h2 "Бизнес: " bid]
      [:h4 "Роли: " (clojure.string/join "," roles)]
-     [:a.btn.btn-default "Выйти"]]))
+     [:a.btn.btn-default {:href "/auth/logout"} "Выйти"]]))
 
 
 (defn sidebar-menu [db]

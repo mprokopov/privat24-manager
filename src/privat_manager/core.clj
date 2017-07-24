@@ -268,31 +268,6 @@
                      (map f statements (iterate inc 0))]]))]
        [:div "необходима авторизация для загрузки выписок"]))))
 
-;; (defn statements-index2 [& params]
-;;   (let [statements (sort-by :date (get-in @manager [:db :statements]))]
-;;     (template
-;;      (if (privat.auth/authorized? privat)
-;;        [:div
-;;          (date-form)
-;;          [:div.clearfix]
-;;          (let [f (fn [statement i]
-;;                    (let [{:keys[receipt amount refp payment purpose date]} (privat.util/parse-statement statement)]
-;;                        [:tr
-;;                         [:td [:a {:href (str "/statements/" i)} (time.format/unparse (time.format/formatters :date) date)]]
-;;                         [:td amount]
-;;                         [:td purpose]]))]
-;;            (x-panel (str "Выписки " (count statements))
-;;             [:table.table
-;;              [:thead
-;;               [:tr
-;;                [:th "Дата"]
-;;                [:th "Сумма"]
-;;                [:th "Назначение"]]]
-             
-;;              [:tbody
-;;               (map f statements (iterate inc 0))]]))]
-;;        [:div "необходима авторизация для загрузки выписок"]))))
-
 (defn paging-statements [id]
    (let [statements (get-in @app-db [:manager :db :mstatements])
          has-prev? (> id 0) 
@@ -302,17 +277,6 @@
         [:a.btn.btn-default {:href (str "/statements/" (dec id))} "предыдущий"])
       (when has-next?
         [:a.btn.btn-default {:href (str "/statements/" (inc id))} "следующий"])]))
-
-;; (def i18n {:taxes "налоги"
-;;            :operational-expences-bank "банковские расходы"
-;;            :customer "оплата от клиента"
-;;            :supplier "оплата поставщику"
-;;            :salary "зарплата"
-;;            :transfer "перевод между счетами"
-;;            :agent-income "другой доход"
-;;            :transfer-from-cash "инкассация выручки"
-;;            :receipt "получение"
-;;            :phone "платеж за связь"})
 
 (defn single-statement [index]
   (let [statement (-> (get-in @app-db [:manager :db :mstatements])
@@ -345,31 +309,6 @@
                 [:div.divider]
                 [:div.controls.row
                   (paging-statements index)]])])))
-
-;; (defn single-statement2 [id]
-;;   (let [statements (get-in @app-db [:manager :db :statements])
-;;         statement (nth statements id)
-;;         {:keys [date refp purpose amount payment receipt debit credit payer payee recognized]} (-> statement
-;;                                                                                                    privat.util/parse-statement
-;;                                                                                                    privat.util/assoc-transaction-type
-;;                                                                                                    (privat.util/append-uuid manager))]
-;;     (template
-;;      [:div.col-md-6
-;;       (x-panel
-;;        [:div
-;;         (time.format/unparse (time.format/formatters :date) date) " | " (get i18n receipt) (get i18n payment) " | " payer payee " "
-;;          (when recognized [:i.fa.fa-check-square])]
-;;        [:div
-;;         [:h2 purpose]
-;;         [:h2 amount]
-;;         [:p [:b (:name debit)] " | " (:edrpou debit)]
-;;         [:p [:b (:name credit)] " | " (:edrpou credit)]
-;;         [:div.controls
-;;           (paging-statements id)]
-;;         [:div.controls
-;;           [:form {:method :POST}
-;;            [:input.btn.btn-danger {:type "submit" :value "Отправить"}]]]])])))
-
 
 (defn post-statement [id]
   (let [statement (nth (get-in @app-db [:manager :db :statements]) id)
@@ -457,7 +396,8 @@
  (template
   (do
     (privat.auth/auth privat)
-    (privat.auth/auth-p24 privat))))
+    (utils/map-to-html-list
+      (privat.auth/auth-p24 privat)))))
 
 (defn with-redirect [f to]
   (do
@@ -482,6 +422,7 @@
   (GET "/accounts" [] settings)
   (POST "/accounts" [account] (load-account account))
   (POST "/login" [] login-step2)
+  (GET "/auth/logout" [] (with-redirect (privat.auth/logout privat) "/accounts"))
   (context "/api" [])
   (context "/statements" []
            (GET "/" [] statements-index)
