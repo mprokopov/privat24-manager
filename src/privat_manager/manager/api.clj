@@ -106,12 +106,12 @@
 
 
 (defn edrpou-by-customer2 [uuid manager-db]
-  (let [custom-edrpou-uuid (keyword (get-in @manager-db [:uuids :customer-edrpou]))] 
-    (get-in @manager-db [:db :customers (keyword uuid) :CustomFields custom-edrpou-uuid])))
+  (let [custom-edrpou-uuid (keyword (get-in manager-db [:uuids :customer-edrpou]))] 
+    (get-in manager-db [:db :customers (keyword uuid) :CustomFields custom-edrpou-uuid])))
 
 (defn edrpou-by-supplier2 [uuid manager-db]
-  (let [custom-edrpou-uuid (keyword (get-in @manager-db [:uuids :supplier-edrpou]))] 
-    (get-in @manager-db [:db :suppliers (keyword uuid) :CustomFields custom-edrpou-uuid])))
+  (let [custom-edrpou-uuid (keyword (get-in manager-db [:uuids :supplier-edrpou]))] 
+    (get-in manager-db [:db :suppliers (keyword uuid) :CustomFields custom-edrpou-uuid])))
 
 ;; (defmulti statement-link [] (fn [statement _] (select-keys [:payment :transfer])))
 

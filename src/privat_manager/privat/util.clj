@@ -106,21 +106,21 @@
 (defn get-uuid-by-key
   "returns uuid from uuids hashmap by key"
   [k db]
-  (get-in @db [:uuids k]))
+  (get-in db [:uuids k]))
 
 
 (defn get-supplier-by-edrpou
   "find supplier by custom code edrpou"
   [edrpou db]
   (first
-   (filter #(= edrpou (manager.api/edrpou-by-supplier2 (key %) db)) (get-in @db [:db :suppliers]))))
+   (filter #(= edrpou (manager.api/edrpou-by-supplier2 (key %) db)) (get-in db [:db :suppliers]))))
 
 
 (defn get-customer-by-edrpou
   "find customer by custom code edrpou"
   [edrpou db]
   (first
-   (filter #(= edrpou (manager.api/edrpou-by-customer2 (key %) db)) (get-in @db [:db :customers]))))
+   (filter #(= edrpou (manager.api/edrpou-by-customer2 (key %) db)) (get-in db [:db :customers]))))
 
 
 (defn assoc-transaction-type
@@ -164,53 +164,53 @@
 
 (defmethod make-manager-statement
   {:payment :operational-expences-bank}
-  [statement db]
+  [statement {db :manager}]
   (assoc statement
          :payee "Приватбанк"
          :recognized true
          :comment "оплата банковских расходов"
          :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid @db)
+         :credit-uuid (:bank-account-uuid db)
          :debit-uuid (get-uuid-by-key :operational-expences-bank db)))
 
 (defmethod make-manager-statement
   {:payment :phone}
-  [statement db]
+  [statement {db :manager}]
   (assoc statement
          :payee "Астелит"
          :recognized true
          :comment "оплата расходов связи"
          :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid @db)
-         :tax (get @db :tax-uuid)
+         :credit-uuid (:bank-account-uuid db)
+         :tax (get db :tax-uuid)
          :debit-uuid (get-uuid-by-key :phone db)))
 
 
 (defmethod make-manager-statement
   {:payment :taxes}
-  [statement db]
+  [statement {db :manager}]
   (assoc statement
          :payee "Налоговая"
          :recognized true
          :comment "оплата налогов"
          :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid @db)
+         :credit-uuid (:bank-account-uuid db)
          :debit-uuid (get-uuid-by-key :taxes db)))
 
 (defmethod make-manager-statement
   {:payment :salary}
-  [statement db]
+  [statement {db :manager}]
   (assoc statement
          :payee "Зарплата"
          :recognized true
          :comment "выплата зарплаты"
          :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid @db)
+         :credit-uuid (:bank-account-uuid db)
          :debit-uuid ""))
 
 (defmethod make-manager-statement
   {:payment :transfer}
-  [statement db]
+  [statement {db :manager}]
   (-> statement
       (dissoc :payment)
       (assoc
@@ -218,12 +218,12 @@
        :recognized true
        :comment "снятие кеша"
        :amount (Math/abs (get statement :amount))
-       :credit-uuid (:bank-account-uuid @db)
-       :debit-uuid (:cash-account-uuid @db)))) 
+       :credit-uuid (:bank-account-uuid db)
+       :debit-uuid (:cash-account-uuid db)))) 
 
 (defmethod make-manager-statement
   {:receipt :transfer}
-  [statement db]
+  [statement {db :manager}]
   (-> statement
       (dissoc :receipt)
       (assoc
@@ -231,29 +231,29 @@
        :recognized true
        :comment "пополнение счета"
        :amount (get statement :amount)
-       :debit-uuid (:bank-account-uuid @db)
-       :credit-uuid (:cash-account-uuid @db)))) 
+       :debit-uuid (:bank-account-uuid db)
+       :credit-uuid (:cash-account-uuid db)))) 
 
 (defmethod make-manager-statement
   {:payment :supplier}
-  [statement db]
+  [statement {db :manager}]
   (let [edrpou (get-in statement [:credit :edrpou])
         supplier (get-supplier-by-edrpou edrpou db)
         supplier-name1 (get-in statement [:credit :name])
         supplier-name2 (when supplier (get (val supplier) :Name))]
    (assoc statement
           :payee (or supplier-name2 supplier-name1) 
-          :tax (get @db :tax-uuid)
+          :tax (get db :tax-uuid)
           :recognized supplier-name2
           :comment "оплата поставщику"
           :extra (get-in statement [:credit :name])
           :amount (Math/abs (get statement :amount))
           :credit-uuid (when supplier (key supplier))
-          :debit-uuid (:bank-account-uuid @db))))
+          :debit-uuid (:bank-account-uuid db))))
 
 (defmethod make-manager-statement
   {:receipt :customer}
-  [statement db]
+  [statement {db :manager}]
   (let [edrpou (get-in statement [:debit :edrpou])
         customer (get-customer-by-edrpou edrpou db)
         customer-name1 (when customer (-> customer val :Name))
@@ -261,19 +261,19 @@
    (assoc statement
           :payer (or customer-name1 customer-name2)
           :recognized customer-name1
-          :tax (get @db :tax-uuid)
+          :tax (get db :tax-uuid)
           :comment "оплата покупателя"
           :amount (get statement :amount)
           :debit-uuid (when customer (key customer))
-          :credit-uuid (get @db :bank-account-uuid))))
+          :credit-uuid (get db :bank-account-uuid))))
 
 (defmethod make-manager-statement
   {:receipt :agent-income}
-  [statement db]
+  [statement {db :manager}]
   (assoc statement
          :debit-uuid (get-uuid-by-key :agent-income db)
-         :credit-uuid (:bank-account-uuid @db)
-         :tax (get @db :tax-uuid)
+         :credit-uuid (:bank-account-uuid db)
+         :tax (get db :tax-uuid)
          :comment "агентский доход"
          :recognized true
          :payer (get-in statement [:debit :name])))
@@ -320,14 +320,13 @@
   (let [category-key (get-category-key statement)]
     (manager.api/api-post2! category-key (render-manager-statement statement) manager-db))) 
 
-(defn get-statement-by-index [x db]
-  (let [statements (get-in @db [:manager :db :mstatements])]
-    (nth statements x)))
+;; (defn get-statement-by-index [x db]
+;;   (let [statements (get-in @db [:manager :db :mstatements])]
+;;     (nth statements x)))
 
 
 (defn make-statements-list [db]
-  (-> (get-in db [:db :statements])))
-
+  (get-in db [:manager :db :statements]))
 
 (defn format-floats [m]
   (let [f (fn [acc mkey mval] (assoc acc mkey (if (float? mval) (format "%.2f" mval) mval)))]

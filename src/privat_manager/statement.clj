@@ -3,6 +3,7 @@
    [privat-manager.utils :as utils]
    [privat-manager.template :refer [x-panel date-form]]
    [privat-manager.privat.util :as privat.util]
+   [privat-manager.privat.api :as privat.api]
    [privat-manager.privat.auth :as privat.auth]
    [clojure.string :as str]
    [clj-time.format :as time.format])
@@ -96,10 +97,10 @@
      (paging index statements)])) 
 
 ;; TODO
-;; (defn fetch! [app-db stdate endate]
-;;   (do
-;;     (swap! app-db assoc-in [:manager :db :statements] (privat.api/get-statements (:privat @app-db) stdate endate))
-;;     (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.util/make-statements-list (:manager @app-db))
-;;                                                             (map privat.util/transform->manager2)
-;;                                                             (map #(privat.util/make-manager-statement % manager))
-;;                                                             (sort-by :date)))))
+(defn fetch! [app-db stdate endate]
+  (do
+    (swap! app-db assoc-in [:manager :db :statements] (privat.api/get-statements (:privat @app-db) stdate endate))
+    (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.util/make-statements-list @app-db)
+                                                            (map privat.util/transform->manager2)
+                                                            (map #(privat.util/make-manager-statement % @app-db))
+                                                            (sort-by :date)))))

@@ -11,22 +11,23 @@
     [:div
       (if (privat.auth/authorized? app-db)
         (date-form)
-        [:div.alert.alert-danger "необходимо авторизоваться"])
-      [:table.table.table-striped.table-hover
-        [:tr
-          [:th "Дата"]
-          [:th "Ушло"]
-          [:th "Пришло"]
-          [:th "Вх. остаток"]
-          [:th "Исх. остаток"]]
-        (for [r rests
-              :let [{:keys [date inrest outrest debit credit]} (privat.util/format-floats r)]]
+        [:div.alert.alert-danger "необходимо авторизоваться для загрузки остатков"])
+      (when rests
+        [:table.table.table-striped.table-hover
           [:tr
-            [:td (time.format/unparse (time.format/formatter "dd MMMM YYYY") date)]
-            [:td debit]
-            [:td credit]
-            [:td inrest]
-            [:td outrest]])]]) 
+            [:th "Дата"]
+            [:th "Ушло"]
+            [:th "Пришло"]
+            [:th "Вх. остаток"]
+            [:th "Исх. остаток"]]
+          (for [r rests
+                :let [{:keys [date inrest outrest debit credit]} (privat.util/format-floats r)]]
+            [:tr
+              [:td (time.format/unparse (time.format/formatter "dd MMMM YYYY") date)]
+              [:td debit]
+              [:td credit]
+              [:td inrest]
+              [:td outrest]])])]) 
 
 (defn fetch! [app-db stdate endate]
   (swap! app-db assoc-in [:manager :db :rests]

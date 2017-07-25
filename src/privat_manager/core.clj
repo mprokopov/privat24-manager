@@ -104,14 +104,19 @@
 (defn settings-index [app-db]
   (template (settings/index app-db)))
 
-(defn fetch-statements! [app-db stdate endate] ;; still manager used
-  (do
-   (swap! app-db assoc-in [:manager :db :statements] (privat.api/get-statements (:privat @app-db) stdate endate))
-   (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.util/make-statements-list (:manager @app-db))
-                                                           (map privat.util/transform->manager2)
-                                                           (map #(privat.util/make-manager-statement % manager))
-                                                           (sort-by :date)))
-   (ring.util.response/redirect "/statements")))
+(defn fetch-statements! [app-db stdate endate]
+  (with-redirect
+    (mstatement/fetch! app-db stdate endate)
+    "/statements"))
+
+;; (defn fetch-statements! [app-db stdate endate] ;; still manager used
+;;   (do
+;;    (swap! app-db assoc-in [:manager :db :statements] (privat.api/get-statements (:privat @app-db) stdate endate))
+;;    (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.util/make-statements-list (:manager @app-db))
+;;                                                            (map privat.util/transform->manager2)
+;;                                                            (map #(privat.util/make-manager-statement % manager))
+;;                                                            (sort-by :date)))
+;;    (ring.util.response/redirect "/statements")))
 
 
 (defn statements-index [app-db]
