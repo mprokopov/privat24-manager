@@ -15,19 +15,6 @@
     [:div.clearfix]]
    [:div.x_content body]])
 
-(defn privat-session-info [{privat-session :privat}]
-  (let [{{roles :roles expires :expires :as session} :session bid :business-id} privat-session
-        formatter (time.format/with-locale (time.format/formatter "HH:mm dd MMMM YYYY") (Locale. "ru"))
-        expire (->> (* 1000 expires)
-                    time.coerce/from-long
-                    (time.format/unparse formatter))] 
-    [:div
-     [:h2 "Бизнес: " bid]
-     [:h4 "Роли: " (clojure.string/join ", " roles)]
-     [:p expire]
-     [:p (utils/map-to-html-list session)]
-     [:a.btn.btn-default {:href "/auth/logout"} "Выйти"]]))
-
 
 (defn sidebar-menu [db]
   [:div#sidebar-menu.main_menu_side.hidden-print.main_menu

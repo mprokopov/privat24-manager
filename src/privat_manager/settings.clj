@@ -1,7 +1,24 @@
 (ns privat-manager.settings
   (:require [privat-manager.config :as config]
             [privat-manager.privat.auth :as privat.auth]
-            [privat-manager.template :refer [x-panel privat-session-info]]))
+            [privat-manager.template :refer [x-panel]]
+            [privat-manager.utils :as utils]
+            [clj-time.format :as time.format]
+            [clj-time.coerce :as time.coerce])
+  (:import java.util.Locale))
+
+(defn privat-session-info [{privat-session :privat}]
+  (let [{{roles :roles expires :expires :as session} :session bid :business-id} privat-session
+        formatter (time.format/with-locale (time.format/formatter "HH:mm dd MMMM YYYY") (Locale. "ru"))
+        expire (->> (* 1000 expires)
+                    time.coerce/from-long
+                    (time.format/unparse formatter))] 
+    [:div
+     [:h2 "Бизнес: " bid]
+     [:h4 "Роли: " (clojure.string/join ", " roles)]
+     [:p expire]
+     [:p (utils/map-to-html-list session)]
+     [:a.btn.btn-default {:href "/auth/logout"} "Выйти"]]))
 
 (defn login-form [app-db]
   [:form {:action "/auth/login" :method :POST}
