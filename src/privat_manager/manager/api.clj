@@ -23,24 +23,24 @@
   (let [{bid :business-id} @settings]
     (str api bid "/" uuid ".json")))
 
-;; (defn category-link [category] (str api business-id "/" category)) 
+(defn item-link [uuid app-db]
+  (let [{{bid :business-id} :manager} app-db]
+    (str api bid "/" uuid ".json")))
 
+(defn get-index2! [k app-db]
+  (let [{{:keys [login password] :as manager} :manager} @app-db
+        f (fn [item] (swap! app-db assoc-in [:manager :db k (keyword item)] nil))
+        {body :body} (client/get (category-link k manager true)
+                                 { ;; :debug true
+                                  :as :json
+                                  :basic-auth [login password]})]
+    (dorun (map f body))))
 
-(defn get-index2! [k settings]
-  (let [{:keys [login password]} @settings
-        request (client/get (category-link2 k settings true)
-                            {:as :json
-                             ;; :debug true
-                             :basic-auth [login password]})
-        body (get request :body)]
-    (dorun (map #(swap! settings assoc-in [:db k (keyword %)] nil) body))))
-
-(defn fetch-uuid-item! [uuid settings]
-  (let [{login :login password :password} @settings
-        request (client/get (item-link2 uuid settings)
-                            {:as :json
-                             :basic-auth [login password]})
-        body (get request :body)]
+(defn fetch-uuid-item! [uuid app-db]
+  (let [{{login :login password :password} :manager} @app-db
+        {body :body} (client/get (item-link uuid @app-db)
+                                 {:as :json
+                                  :basic-auth [login password]})]
     body))
 
 (defn fetch-uuid-item2! [uuid settings]
@@ -93,9 +93,9 @@
 (defn populate-db!
   "fetch item for every DB uuid and update entry"
   [k settings]
-  (let [db (get-in @settings [:db k])
+  (let [db (get-in @settings [:manager :db k])
         db2 (reduce #(assoc %1 (-> %2 key keyword) (fetch-uuid-item! (-> %2 key name) settings)) {} db)]
-    (swap! settings assoc-in [:db k] db2)
+    (swap! settings assoc-in [:manager :db k] db2)
     "ok"))
 
 ;; (defn edrpou-by-customer [customer]

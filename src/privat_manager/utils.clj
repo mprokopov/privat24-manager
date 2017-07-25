@@ -15,3 +15,21 @@
                       (if (map? v)
                         (map-to-html-list v list-type wrapper sep)
                         v))]])])))
+
+
+(defn parse-edrpou-statements [{{{statements :mstatements} :db} :manager}]
+  (if statements
+    [:table.table
+     [:thead
+      [:tr
+       [:th "Клиент"]
+       [:th "ЕДРПОУ"]
+       [:th "Поставщик"]
+       [:th "ЕДРПОУ"]]]
+     (for [statement statements] 
+       [:tr
+        [:td (get-in statement [:debit :name])]
+        [:td (get-in statement [:debit :edrpou])]
+        [:td (get-in statement [:credit :name])]
+        [:td (get-in statement [:credit :edrpou])]])]
+    [:p "Необходимо загрузить выписки"]))

@@ -3,9 +3,10 @@
             [privat-manager.privat.api :as privat.api]
             [privat-manager.privat.auth :as privat.auth]
             [privat-manager.privat.util :as privat.util]
-            [privat-manager.utils :as utils]
+            [privat-manager.utils :refer [parse-edrpou-statements] :as utils]
             [privat-manager.rests :as rests]
             [privat-manager.statement :as mstatement]
+            [privat-manager.customers :as customers]
             [privat-manager.template :refer [x-panel privat-session-info sidebar-menu date-form]]
             [privat-manager.manager.api :as manager.api]
             [compojure.core :refer [defroutes GET POST context]]
@@ -141,48 +142,10 @@
             "не загружены настройки"))]])))
 
 
-(defn parse-edrpou-statements [{{{statements :mstatements} :db} :manager}]
-  (if statements
-    [:table.table
-     [:thead
-      [:tr
-       [:th "Клиент"]
-       [:th "ЕДРПОУ"]
-       [:th "Поставщик"]
-       [:th "ЕДРПОУ"]]]
-     (for [statement statements] 
-       [:tr
-        [:td (get-in statement [:debit :name])]
-        [:td (get-in statement [:debit :edrpou])]
-        [:td (get-in statement [:credit :name])]
-        [:td (get-in statement [:credit :edrpou])]])]
-    [:p "Необходимо загрузить выписки"]))
 
 
 (defn customers-index [app-db]
-  (let [customers (get-in @app-db [:manager :db :customers])
-        custom-edrpou (keyword (get-in @app-db [:manager :uuids :customer-edrpou]))]
-        ;; custom-edrpou (keyword (:customer-edrpou @uuids))]
-   (template
-    [:form {:method :POST}
-     [:input.btn.btn-primary {:type :submit :value "Загрузить из Manager"}]
-     [:a.btn.btn-default {:href "/settings/load?data=customers"} "Загрузить из кеша"]]
-    [:div.col-md-6
-     (x-panel "Покупатели из Manager"
-      [:table.table
-       [:thead
-        [:tr
-         [:th "Название"]
-         [:th "ЕДРПОУ"]]]
-       [:tbody
-        (for [customer customers]
-          (let [{n :Name custom :CustomFields} (val customer)
-                edrpou (get custom custom-edrpou)]
-            [:tr
-             [:td [:a {:href (str "/customers/" (-> customer key name))} n]]
-             [:td edrpou]]))]])]
-    [:div.col-md-6
-     (parse-edrpou-statements @app-db)])))
+  (template (customers/index @app-db)))
 
 
 (defn suppliers-index [app-db]
@@ -269,12 +232,6 @@
     (manager.api/populate-db! :suppliers manager-db)
     (ring.util.response/redirect "/suppliers")))
 
-(defn fetch-customers! [manager-db]
-  (do
-    (manager.api/get-index2! :customers manager-db)
-    (manager.api/populate-db! :customers manager-db)
-    (ring.util.response/redirect "/customers")))
-
 (defn form-customer [uuid m]
   [:form.form-horizontal {:method :POST}
    [:div.form-group
@@ -352,7 +309,7 @@
   (GET "/" [] (settings app-db))
   (context "/customers" []
            (GET "/" [] (customers-index app-db))
-           (POST "/" [] (fetch-customers! manager))
+           (POST "/" [] (with-redirect (customers/fetch-customers! app-db) "/customers"))
            (GET "/:uuid" [uuid] (single-customer uuid)) 
            (POST "/:uuid" [uuid edrpou] (update-customer! uuid {:edrpou edrpou} manager))) 
   (context "/suppliers" []
