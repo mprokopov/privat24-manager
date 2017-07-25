@@ -1,5 +1,6 @@
 (ns privat-manager.config)
 
+(def config-set #{"itservice" "puzko" "super-truper"})
 ;; (defn load-uuids [uuids]
 ;;   (let [bid (:business-id @uuids)]
 ;;     (swap! uuids assoc :uuids

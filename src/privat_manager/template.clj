@@ -62,3 +62,14 @@
       [:input#testDate.form-control {:type :text :name :testDate :style "width: 180px;"}]
       [:span.input-group-btn
        [:button.btn.btn-primary {:type :button :onClick "document.getElementById('date-select').submit();"} "Загрузить из Privat24"]]]]]])
+
+
+(defn paging-statements [id app-db]
+  (let [statements (get-in app-db [:manager :db :mstatements])
+        has-prev? (> id 0) 
+        has-next? (< (+ id 1) (count statements))]
+    [:div
+     (when has-prev?
+       [:a.btn.btn-default {:href (str "/statements/" (dec id))} "предыдущий"])
+     (when has-next?
+       [:a.btn.btn-default {:href (str "/statements/" (inc id))} "следующий"])]))

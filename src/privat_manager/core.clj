@@ -4,6 +4,8 @@
             [privat-manager.privat.auth :as privat.auth]
             [privat-manager.privat.util :as privat.util]
             [privat-manager.utils :as utils]
+            [privat-manager.rests :as rests]
+            [privat-manager.statement :as mstatement]
             [privat-manager.template :refer [x-panel privat-session-info sidebar-menu date-form]]
             [privat-manager.manager.api :as manager.api]
             [compojure.core :refer [defroutes GET POST context]]
@@ -108,20 +110,19 @@
 
 
 (defn settings [app-db]
-  (let [accounts #{"puzko" "itservice" "super-truper"}
-        f (fn [e] [:option {:value e :selected (when (= e (:business-id @app-db)) true)} e])
+  (let [f (fn [e] [:option {:value e :selected (= e (:business-id @app-db))} e])
         {roles :roles} (:privat @app-db)]
     (template
      [:div
-        [:div.col-md-3
+        [:div.col-md-4
          (x-panel
           "Конфигурация предприятия"
           [:form {:method :post}
            [:select.form-control {:name "account"}
-            (map f accounts)]
+            (map f config/config-set)]
            [:br]
            [:input.btn.btn-primary {:type :submit :value "Загрузить"}]])]
-        [:div.col-md-3
+        [:div.col-md-4
          (x-panel "Управление Manager"
           [:div
            [:h2 "Загрузить из кеша"]
@@ -131,7 +132,7 @@
            [:h2 "Сохранить кеш"]
            [:a.btn.btn-danger {:href "/settings/save?data=customers"} "Покупателей"]
            [:a.btn.btn-danger {:href "/settings/save?data=suppliers"} "Поставщиков"]])]
-        [:div.col-md-3
+        [:div.col-md-4
          (x-panel "Приват24"
           (if-let [privat (:privat @app-db)]
             (if (privat.auth/authorized? privat) 
@@ -220,6 +221,9 @@
 
 
 (defn statements-index [app-db]
+  (template [:h1 "Выписки"] (mstatement/index @app-db)))
+
+(defn statements-index2 [app-db]
   (let [statements (get-in @app-db [:manager :db :mstatements])]
     (template
        [:h1 "Выписки"]
@@ -254,48 +258,41 @@
                     [:tbody
                      (map f statements (iterate inc 0))]]))])))
 
-(defn paging-statements [id]
-   (let [statements (get-in @app-db [:manager :db :mstatements])
-         has-prev? (> id 0) 
-         has-next? (< (+ id 1) (count statements))]
-    [:div
-      (when has-prev?
-        [:a.btn.btn-default {:href (str "/statements/" (dec id))} "предыдущий"])
-      (when has-next?
-        [:a.btn.btn-default {:href (str "/statements/" (inc id))} "следующий"])]))
-
 (defn single-statement [index]
-  (let [statement (-> (get-in @app-db [:manager :db :mstatements])
-                      (nth index))
-        {:keys [credit date debit amount comment recognized purpose payee payer]} statement
-        custom-formatter (time.format/with-locale (time.format/formatter "dd.MM.yy в HH:mm") (Locale. "ru"))
-        custom-formatter2 (time.format/formatter "dd.MM.yy")
-        mdate2 (time.format/unparse custom-formatter2 date)
-        mdate (time.format/unparse custom-formatter date)
-        label (fn [statement] [:span.label.label-primary (-> (select-keys statement [:payment :receipt :transfer]) first key)])]
-    (template
-     [:div.col-md-10
-      (x-panel [:div (when recognized [:i.fa.fa-check-square]) " банковская выписка от " mdate2] 
-               [:div
-                [:div.jumbotron
-                 [:h1 payee payer " " comment " " amount]
-                 [:h1 mdate] 
-                 [:p (label statement) " " purpose]
-                 [:div.controls
-                   [:form {:method :POST}
-                     [:input.btn.btn-danger {:type "submit" :value "Отправить в Manager"}]]]]
+  (template (mstatement/single index @app-db)))
 
-                [:div.col-md-6
-                  [:h3 "Кредитор"]
-                  (utils/map-to-html-list credit)]
-                [:div.col-md-6
-                  [:h3 "Дебитор"]
-                  (utils/map-to-html-list debit)]
-                [:div.clearfix
-                 (utils/map-to-html-list (privat.util/render-manager-statement statement))]
-                [:div.divider]
-                [:div.controls.row
-                  (paging-statements index)]])])))
+;; (defn single-statement2 [index]
+;;   (let [statement (-> (get-in @app-db [:manager :db :mstatements])
+;;                       (nth index))
+;;         {:keys [credit date debit amount comment recognized purpose payee payer]} statement
+;;         custom-formatter (time.format/with-locale (time.format/formatter "dd.MM.yy в HH:mm") (Locale. "ru"))
+;;         custom-formatter2 (time.format/formatter "dd.MM.yy")
+;;         mdate2 (time.format/unparse custom-formatter2 date)
+;;         mdate (time.format/unparse custom-formatter date)
+;;         label (fn [statement] [:span.label.label-primary (-> (select-keys statement [:payment :receipt :transfer]) first key)])]
+;;     (template
+;;      [:div.col-md-10
+;;       (x-panel [:div (when recognized [:i.fa.fa-check-square]) " банковская выписка от " mdate2] 
+;;                [:div
+;;                 [:div.jumbotron
+;;                  [:h1 payee payer " " comment " " amount]
+;;                  [:h1 mdate] 
+;;                  [:p (label statement) " " purpose]
+;;                  [:div.controls
+;;                    [:form {:method :POST}
+;;                      [:input.btn.btn-danger {:type "submit" :value "Отправить в Manager"}]]]]
+
+;;                 [:div.col-md-6
+;;                   [:h3 "Кредитор"]
+;;                   (utils/map-to-html-list credit)]
+;;                 [:div.col-md-6
+;;                   [:h3 "Дебитор"]
+;;                   (utils/map-to-html-list debit)]
+;;                 [:div.clearfix
+;;                  (utils/map-to-html-list (privat.util/render-manager-statement statement))]
+;;                 [:div.divider]
+;;                 [:div.controls.row
+;;                   (mstatement/paging index @app-db)]])])))
 
 ;; (defn post-statement [id]
 ;;   (let [statement (nth (get-in @app-db [:manager :db :statements]) id)
@@ -311,7 +308,8 @@
 ;;      (paging-statements id))))
 
 (defn post-statement! [id]
-  (let [statement (nth (get-in @app-db [:manager :db :mstatements]) id)
+  (let [statements (get-in @app-db [:manager :db :mstatements])
+        statement (nth statements id)
         {status :status headers :headers} (privat.util/post2 statement manager)]
     (template
      (if (= status 201)
@@ -320,7 +318,7 @@
         [:p (get headers "Location")]]
                                         ;[:a {:href "http://manager.it-premium.local:8080/payment-view?Key=4bf84e58-013d-413b-88c0-99454c23b119&FileID=937914e4-5686-4eec-ba21-474b1c0f982e"} "посмотреть"]]
        [:h1 "Произошла ошибка при создании!"])
-     (paging-statements id))))
+     (mstatement/paging id statements)))) 
 
 (defn fetch-suppliers! [manager-db]
   (do
@@ -399,33 +397,8 @@
   "/accounts"))
 
 (defn rests-index [app-db]
-  (let [rests (get-in @app-db [:manager :db :rests])]
-    (template [:h1 "Остатки "]
-              [:div
-                (date-form)
-                [:table.table
-                 [:tr
-                  [:th "Дата"]
-                  [:th "Ушло"]
-                  [:th "Пришло"]
-                  [:th "Вх. остаток"]
-                  [:th "Исх. остаток"]]
-                 (for [r rests
-                       :let [{:keys [date inrest outrest debit credit]} (privat.util/format-floats r)]]
-                   [:tr
-                     [:td (time.format/unparse (time.format/formatter "dd MMMM YYYY") date)]
-                     [:td debit]
-                     [:td credit]
-                     [:td inrest]
-                     [:td outrest]])]]))) 
-
-(defn fetch-rests! [app-db stdate endate]
-  (swap! app-db assoc-in [:manager :db :rests]
-    (->>
-     (privat.api/get-rests (:privat @app-db) stdate endate)
-     (mapv privat.util/parse-rest)
-     (sort-by :date)
-     reverse)))
+  (template [:h1 "Остатки"]
+            (rests/index app-db)))
 
 (defn with-redirect [f to]
   (do
@@ -446,7 +419,7 @@
            (POST "/" [] (fetch-suppliers! manager)))
   (context "/rests" []
            (GET "/" [] (rests-index app-db))
-           (POST "/" [stdate endate] (with-redirect (fetch-rests! app-db stdate endate) "/rests")))
+           (POST "/" [stdate endate] (with-redirect (rests/fetch-rests! app-db stdate endate) "/rests")))
   (context "/settings" []
    (GET "/load" [data] (with-redirect (config/load-cached-db (keyword data) app-db) "/accounts"))
    (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/accounts")))
@@ -487,7 +460,7 @@
   (start-dev))
 
 (defn -main [& args]
-  (when-let [conf (first args)]
+  (when-let [conf (config/config-set (first args))]
      (do
       (config/load-settings! conf app-db)
       (config/load-cached-db :customers app-db)
