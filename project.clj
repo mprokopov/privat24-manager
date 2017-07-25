@@ -7,7 +7,7 @@
                  [cheshire "5.7.1"]
                  [clj-http "3.6.1"]
                  [clj-time "0.13.0"]
-                 [funcool/lentes "1.2.0"]
+                 ;; [funcool/lentes "1.2.0"]
                  [compojure "1.6.0"]
                  [hiccup "1.0.5"]
                  [ring/ring-jetty-adapter "1.6.1"]

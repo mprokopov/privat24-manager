@@ -1,47 +1,36 @@
 (ns privat-manager.core
   (:require [cheshire.core :as cheshire]
-            [privat-manager.privat.api :as privat.api]
             [privat-manager.privat.auth :as privat.auth]
-            [privat-manager.privat.util :as privat.util]
-            [privat-manager.utils :refer [parse-edrpou-statements] :as utils]
+            [privat-manager.utils :as utils]
             [privat-manager.rests :as rests]
             [privat-manager.statement :as mstatement]
             [privat-manager.customers :as customers]
             [privat-manager.suppliers :as suppliers]
             [privat-manager.settings :as settings]
-            [privat-manager.template :refer [x-panel privat-session-info sidebar-menu date-form]]
-            [privat-manager.manager.api :as manager.api]
+            [privat-manager.template :refer [x-panel sidebar-menu]]
             [compojure.core :refer [defroutes GET POST context]]
             [compojure.coercions :refer [as-int as-uuid]]
-            [clj-time.core :as time]
             [clj-time.coerce :as time.coerce]
             [privat-manager.config :as config]
             [clojure.walk :as walk]
-            [lentes.core :as lentes]
             [ring.middleware.resource :refer [wrap-resource]]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.not-modified :refer [wrap-not-modified]]
             [ring.middleware.content-type :refer [wrap-content-type]]
             [hiccup.core]
             [ring.adapter.jetty :refer [run-jetty]]
-            [clj-time.format :as time.format]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [clojure.string :as str])
-  (:import java.util.Locale)
   (:gen-class))
 
 (declare with-redirect)
-
 
 (def app-db (atom {:business-id ""
                    :privat nil
                    :manager nil}))
 
 ;; (def privat (lentes/derive (lentes/key :privat) app-db))
-(def manager (lentes/derive (lentes/key :manager) app-db))
-
-
-
+;; (def manager (lentes/derive (lentes/key :manager) app-db))
 
 (defn template
   "шаблон этого HTML"
@@ -108,15 +97,6 @@
   (with-redirect
     (mstatement/fetch! app-db stdate endate)
     "/statements"))
-
-;; (defn fetch-statements! [app-db stdate endate] ;; still manager used
-;;   (do
-;;    (swap! app-db assoc-in [:manager :db :statements] (privat.api/get-statements (:privat @app-db) stdate endate))
-;;    (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.util/make-statements-list (:manager @app-db))
-;;                                                            (map privat.util/transform->manager2)
-;;                                                            (map #(privat.util/make-manager-statement % manager))
-;;                                                            (sort-by :date)))
-;;    (ring.util.response/redirect "/statements")))
 
 
 (defn statements-index [app-db]
