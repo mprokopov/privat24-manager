@@ -185,41 +185,6 @@
 (defn statements-index [app-db]
   (template [:h1 "Выписки"] (mstatement/index @app-db)))
 
-(defn statements-index2 [app-db]
-  (let [statements (get-in @app-db [:manager :db :mstatements])]
-    (template
-       [:h1 "Выписки"]
-       [:div.row
-        (if (privat.auth/authorized? (:privat @app-db))
-          (date-form)
-          [:div.col-md-6.alert.alert-danger "необходима авторизация для загрузки выписок"])
-        [:div.clearfix]
-        (let [f (fn [statement i]
-                  (let [{:keys[receipt amount refp payment purpose debit credit date payee payer recognized comment]} statement]
-                    [:tr
-                     [:td
-                      [:article.media.event
-                       (let [dt (time.format/unparse (time.format/formatter "dd-MMM") date)
-                             [day month] (str/split dt #"\-")]
-                        [:a.date.pull-left {:href (str "/statements/" i)}
-                          [:p.month month]
-                          [:p.day day]])]]
-                     [:td amount]
-                     [:td comment]
-                     [:td (when recognized [:i.fa.fa-check-square]) " " payee payer]
-                     [:td purpose]]))]
-          (x-panel (str "Выписки " (count statements))
-                   [:table.table
-                    [:thead
-                     [:tr
-                      [:th.col-md-1 "Дата"]
-                      [:th "Сумма"]
-                      [:th.col-md-2 "Тип"]
-                      [:th.col-md-3 "Контрагент"]
-                      [:th "Назначение"]]]
-                    [:tbody
-                     (map f statements (iterate inc 0))]]))])))
-
 (defn single-statement [index]
   (template (mstatement/single index @app-db)))
 
@@ -232,15 +197,6 @@
     (manager.api/populate-db! :suppliers manager-db)
     (ring.util.response/redirect "/suppliers")))
 
-(defn form-customer [uuid m]
-  [:form.form-horizontal {:method :POST}
-   [:div.form-group
-    [:label.col-md-2.control-label {:for :edrpou} "ЕДРПОУ"]
-    [:div.col-md-3
-     [:input#edrpou {:type :text :name "edrpou" :value (:edrpou m)}]]]
-   [:div.ln_solid]
-   [:div.controls
-    [:input.btn.btn-primary {:type :submit :value "Сохранить"}]]])
   
 (defn form-supplier [uuid m]
   [:form {:method :POST}
@@ -251,15 +207,8 @@
     [:input.btn.btn-primary {:type :submit :value "Сохранить"}]]])
 
 
-(defn single-customer [uuid]
-  (let [cust (get-in @manager [:db :customers (keyword uuid)])
-        n (:Name cust)
-        edrpou (get-in cust [:CustomFields (keyword (:customer-edrpou (get @manager :uuids)))])]
-   (template
-    [:div.col-md-4
-     (x-panel (str "Покупатель " n)
-      [:div
-       (form-customer uuid {:edrpou edrpou})])])))
+(defn single-customer [uuid app-db]
+   (template (customers/single uuid @app-db)))
 
 
 (defn single-supplier [uuid]
@@ -270,13 +219,8 @@
      [:div.col-md-4
       (x-panel n (form-supplier uuid {:edrpou edrpou}))])))
 
-(defn update-customer! [uuid m manager-db]
-  (let [cust (keyword (get-in @manager-db [:uuids :customer-edrpou]))
-        edrpou (:edrpou m)
-        update-map (assoc-in (manager.api/fetch-uuid-item! uuid manager-db) [:CustomFields cust] edrpou)]
-   (template
-    [:p "Updated"
-     (manager.api/api-update! uuid update-map manager-db)])))
+(defn update-customer! [uuid m app-db]
+  (template (customers/update! uuid m app-db)))
 
 (defn update-supplier! [uuid m]
   (let [cust (keyword (get-in @manager [:uuids :supplier-edrpou]))
@@ -310,8 +254,8 @@
   (context "/customers" []
            (GET "/" [] (customers-index app-db))
            (POST "/" [] (with-redirect (customers/fetch-customers! app-db) "/customers"))
-           (GET "/:uuid" [uuid] (single-customer uuid)) 
-           (POST "/:uuid" [uuid edrpou] (update-customer! uuid {:edrpou edrpou} manager))) 
+           (GET "/:uuid" [uuid] (single-customer uuid app-db)) 
+           (POST "/:uuid" [uuid edrpou] (update-customer! uuid {:edrpou edrpou} app-db))) 
   (context "/suppliers" []
            (GET "/" [] (suppliers-index app-db))
            (GET "/:uuid" [uuid] (single-supplier uuid)) 

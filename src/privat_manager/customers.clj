@@ -11,7 +11,8 @@
 
 
 (defn index [{{{customers :customers} :db :as manager} :manager :as app-db}]
-  (let [custom-edrpou (keyword (get-in manager [:uuids :customer-edrpou]))]
+  (let [{{edrpou-uuid :customer-edrpou} :uuids} manager
+        customer-edrpou (keyword edrpou-uuid)]
     [:div
      [:form {:method :POST}
       [:input.btn.btn-primary {:type :submit :value "Загрузить из Manager"}]
@@ -25,10 +26,11 @@
                   [:th "ЕДРПОУ"]]]
                 [:tbody
                  (for [customer customers]
-                   (let [{n :Name custom :CustomFields} (val customer)
-                         edrpou (get custom custom-edrpou)]
+                   (let [[uuid {n :Name custom-fields :CustomFields}] customer
+                         edrpou (get custom-fields customer-edrpou)
+                         customer-url (str "/customers/" (name uuid))]
                      [:tr
-                      [:td [:a {:href (str "/customers/" (-> customer key name))} n]]
+                      [:td [:a {:href customer-url} n]] 
                       [:td edrpou]]))]])]
      [:div.col-md-6
       (x-panel "Контрагенты из выписки" (utils/parse-edrpou-statements app-db))]]))
@@ -39,3 +41,31 @@
     (manager.api/get-index2! :customers app-db)
     (manager.api/populate-db! :customers app-db)))
 
+
+(defn form-customer [uuid {edrpou :edrpou}]
+  [:form.form-horizontal {:method :POST}
+   [:div.form-group
+    [:div
+     [:label.col-md-2.control-label "ЕДРПОУ"
+      [:input#edrpou {:type :text :name "edrpou" :value edrpou}]]]]
+   [:div.ln_solid]
+   [:div.controls
+    [:input.btn.btn-primary {:type :submit :value "Сохранить"}]]])
+
+
+(defn single [customer-uuid {{{customers :customers} :db uuids :uuids} :manager}]
+  (let [{n :Name :as customer} (get customers (keyword customer-uuid))
+        edrpou (get-in customer [:CustomFields (keyword (:customer-edrpou uuids))])]
+     [:div.col-md-6
+      (x-panel (str "Покупатель " n)
+               [:div
+                (form-customer customer-uuid {:edrpou edrpou})])]))
+
+
+(defn update! [uuid {edrpou :edrpou} app-db]
+  (let [{{{customer-edrpou-uuid :customer-edrpou} :uuids} :manager} @app-db
+        edrpou-uuid-key (keyword customer-edrpou-uuid)
+        update-map (assoc-in (manager.api/fetch-uuid-item! uuid app-db) [:CustomFields edrpou-uuid-key] edrpou)]
+     [:p "Updated"
+      (privat-manager.utils/map-to-html-list update-map)
+      (manager.api/api-update! uuid update-map app-db)]))

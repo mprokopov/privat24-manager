@@ -54,9 +54,9 @@
 
 (defn api-update!
   "update map"
-  [uuid m db]
-  (let [{login :login password :password} @db]
-   (client/put (item-link2 uuid db)
+  [uuid m app-db]
+  (let [{{login :login password :password} :manager} @app-db]
+   (client/put (item-link uuid @app-db)
                {:basic-auth [login password]
                 :body (cheshire.core/generate-string m)})))
 
