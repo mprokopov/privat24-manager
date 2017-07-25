@@ -63,5 +63,5 @@
 
 (defn authorized?
   "ROLE_P24_BUSINESS should be under [:session :roles] atom"
-  [privat]
-  (some #(= % "ROLE_P24_BUSINESS") (get-in privat [:session :roles])))
+  [{{{roles :roles} :session} :privat}]
+  (some #(= % "ROLE_P24_BUSINESS") roles)) 

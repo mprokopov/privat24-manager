@@ -2,15 +2,17 @@
   (:require
    [privat-manager.privat.util :as privat.util]
    [privat-manager.privat.api :as privat.api]
+   [privat-manager.privat.auth :as privat.auth]
    [privat-manager.template :refer [date-form]]
    [clj-time.format :as time.format]))
 
 
-(defn index [app-db]
-  (let [rests (get-in @app-db [:manager :db :rests])]
+(defn index [{{{rests :rests} :db} :manager :as app-db}]
     [:div
-      (date-form)
-      [:table.table
+      (if (privat.auth/authorized? app-db)
+        (date-form)
+        [:div.alert.alert-danger "необходимо авторизоваться"])
+      [:table.table.table-striped.table-hover
         [:tr
           [:th "Дата"]
           [:th "Ушло"]
@@ -24,9 +26,9 @@
             [:td debit]
             [:td credit]
             [:td inrest]
-            [:td outrest]])]])) 
+            [:td outrest]])]]) 
 
-(defn fetch-rests! [app-db stdate endate]
+(defn fetch! [app-db stdate endate]
   (swap! app-db assoc-in [:manager :db :rests]
          (->>
           (privat.api/get-rests (:privat @app-db) stdate endate)

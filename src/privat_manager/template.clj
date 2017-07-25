@@ -15,7 +15,7 @@
     [:div.clearfix]]
    [:div.x_content body]])
 
-(defn privat-session-info [privat-session]
+(defn privat-session-info [{privat-session :privat}]
   (let [{{roles :roles expires :expires :as session} :session bid :business-id} privat-session
         formatter (time.format/with-locale (time.format/formatter "HH:mm dd MMMM YYYY") (Locale. "ru"))
         expire (->> (* 1000 expires)
@@ -48,7 +48,7 @@
        [:li
         [:a [:i.fa.fa-sliders] "Управление" [:span.fa.fa-chevron-down]]
         [:ul.nav.child_menu {:style "display: block;"}
-         [:li [:a {:href "/accounts"} "Настройки"]]]]])]])
+         [:li [:a {:href "/settings"} "Настройки"]]]]])]])
 
 (defn date-form []
   [:div.col-md-3

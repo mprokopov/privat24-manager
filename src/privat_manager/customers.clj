@@ -5,10 +5,7 @@
     [privat-manager.privat.util :as privat.util]
     [privat-manager.privat.auth :as privat.auth]
     [privat-manager.manager.api :as manager.api]
-    [clojure.string :as str]
-    [clj-time.format :as time.format])
-  (:import java.util.Locale))
-
+    [clojure.string :as str]))
 
 (defn index [{{{customers :customers} :db :as manager} :manager :as app-db}]
   (let [{{edrpou-uuid :customer-edrpou} :uuids} manager
@@ -36,13 +33,13 @@
       (x-panel "Контрагенты из выписки" (utils/parse-edrpou-statements app-db))]]))
 
 
-(defn fetch-customers! [app-db]
+(defn fetch! [app-db]
   (do
     (manager.api/get-index2! :customers app-db)
     (manager.api/populate-db! :customers app-db)))
 
 
-(defn form-customer [uuid {edrpou :edrpou}]
+(defn form [uuid {edrpou :edrpou}]
   [:form.form-horizontal {:method :POST}
    [:div.form-group
     [:div
@@ -59,13 +56,16 @@
      [:div.col-md-6
       (x-panel (str "Покупатель " n)
                [:div
-                (form-customer customer-uuid {:edrpou edrpou})])]))
+                (form customer-uuid {:edrpou edrpou})])]))
 
 
 (defn update! [uuid {edrpou :edrpou} app-db]
   (let [{{{customer-edrpou-uuid :customer-edrpou} :uuids} :manager} @app-db
         edrpou-uuid-key (keyword customer-edrpou-uuid)
-        update-map (assoc-in (manager.api/fetch-uuid-item! uuid app-db) [:CustomFields edrpou-uuid-key] edrpou)]
-     [:p "Updated"
-      (privat-manager.utils/map-to-html-list update-map)
-      (manager.api/api-update! uuid update-map app-db)]))
+        update-map (assoc-in (manager.api/fetch-uuid-item! uuid app-db) [:CustomFields edrpou-uuid-key] edrpou)
+        {status :status} (manager.api/api-update! uuid update-map app-db)]
+     (if (= status 200)
+      [:p "Updated"
+       (privat-manager.utils/map-to-html-list update-map)]
+      [:p "error occured"])))
+      

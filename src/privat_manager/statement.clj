@@ -51,12 +51,12 @@
                   (paging index statements)]])]))
 
 
-(defn index [{{{statements :mstatements} :db} :manager privat :privat}]
-       [:div.row
-        (if (privat.auth/authorized? privat)
+(defn index [{{{statements :mstatements} :db} :manager :as app-db}]
+       [:div
+        (if (privat.auth/authorized? app-db)
           (date-form)
-          [:div.col-md-6.alert.alert-danger "необходима авторизация для загрузки выписок"])
-        [:div.clearfix]
+          [:div.alert.alert-danger "необходима авторизация для загрузки выписок"])
+        ;; [:div.clearfix]
         (let [f (fn [statement i]
                   (let [{:keys[receipt amount refp payment purpose debit credit date payee payer recognized comment]} statement]
                     [:tr
@@ -71,17 +71,17 @@
                      [:td comment]
                      [:td (when recognized [:i.fa.fa-check-square]) " " payee payer]
                      [:td purpose]]))]
-          (x-panel (str "Выписки " (count statements))
-                   [:table.table
-                    [:thead
-                     [:tr
-                      [:th.col-md-1 "Дата"]
-                      [:th "Сумма"]
-                      [:th.col-md-2 "Тип"]
-                      [:th.col-md-3 "Контрагент"]
-                      [:th "Назначение"]]]
-                    [:tbody
-                     (map f statements (iterate inc 0))]]))])
+          (when statements
+            [:table.table
+              [:thead
+                [:tr]
+                [:th.col-md-1 "Дата"]
+                [:th "Сумма"]
+                [:th.col-md-2 "Тип"]
+                [:th.col-md-3 "Контрагент"]
+                [:th "Назначение"]]
+              [:tbody
+                (map f statements (iterate inc 0))]]))])
 
 (defn post! [index {{{statements :mstatements} :db} :manager :as manager}]
   (let [statement (nth statements index)
@@ -94,3 +94,12 @@
                                         ;[:a {:href "http://manager.it-premium.local:8080/payment-view?Key=4bf84e58-013d-413b-88c0-99454c23b119&FileID=937914e4-5686-4eec-ba21-474b1c0f982e"} "посмотреть"]]
        [:h1 "Произошла ошибка при создании!"])
      (paging index statements)])) 
+
+;; TODO
+;; (defn fetch! [app-db stdate endate]
+;;   (do
+;;     (swap! app-db assoc-in [:manager :db :statements] (privat.api/get-statements (:privat @app-db) stdate endate))
+;;     (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.util/make-statements-list (:manager @app-db))
+;;                                                             (map privat.util/transform->manager2)
+;;                                                             (map #(privat.util/make-manager-statement % manager))
+;;                                                             (sort-by :date)))))

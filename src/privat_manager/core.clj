@@ -7,6 +7,8 @@
             [privat-manager.rests :as rests]
             [privat-manager.statement :as mstatement]
             [privat-manager.customers :as customers]
+            [privat-manager.suppliers :as suppliers]
+            [privat-manager.settings :as settings]
             [privat-manager.template :refer [x-panel privat-session-info sidebar-menu date-form]]
             [privat-manager.manager.api :as manager.api]
             [compojure.core :refer [defroutes GET POST context]]
@@ -78,7 +80,7 @@
            [:a#menu_toggle [:i.fa.fa-bars]]]
           [:ul.nav.navbar-nav.navbar-right
            [:li
-            [:a {:href "/login"} "Логин"]]]]]]
+            [:a {:href "/auth/login"} "Логин"]]]]]]
        [:div.right_col {:role "main" :style "min-height:914px;"}
         ;; [:div.page-title
         ;;  [:div.title_left
@@ -96,83 +98,13 @@
 
 (defn load-account! [account app-db]
   (with-redirect
-   ;; (utils/map-to-html-list
-    (do
-      (config/load-settings! account app-db)
-      (config/load-cached-db :customers app-db)
-      (config/load-cached-db :suppliers app-db))
-    "/accounts"))
+    (settings/load-account! account app-db)
+    "/settings"))
 
+(defn settings-index [app-db]
+  (template (settings/index app-db)))
 
-(defn login-form [app-db]
-  [:form {:action "/login" :method :POST}
-   [:h3 (str "Доступ к " (get-in app-db [:privat :login]))]
-   [:input.btn.btn-primary {:type :submit :value "Пройти авторизацию Privat24"}]])
-
-
-(defn settings [app-db]
-  (let [f (fn [e] [:option {:value e :selected (= e (:business-id @app-db))} e])
-        {roles :roles} (:privat @app-db)]
-    (template
-     [:div
-        [:div.col-md-4
-         (x-panel
-          "Конфигурация предприятия"
-          [:form {:method :post}
-           [:select.form-control {:name "account"}
-            (map f config/config-set)]
-           [:br]
-           [:input.btn.btn-primary {:type :submit :value "Загрузить"}]])]
-        [:div.col-md-4
-         (x-panel "Управление Manager"
-          [:div
-           [:h2 "Загрузить из кеша"]
-           [:a.btn.btn-default {:href "/settings/load?data=customers"} "Покупателей"]
-           [:a.btn.btn-default {:href "/settings/load?data=suppliers"} "Поставщиков"]
-           [:div.divider]
-           [:h2 "Сохранить кеш"]
-           [:a.btn.btn-danger {:href "/settings/save?data=customers"} "Покупателей"]
-           [:a.btn.btn-danger {:href "/settings/save?data=suppliers"} "Поставщиков"]])]
-        [:div.col-md-4
-         (x-panel "Приват24"
-          (if-let [privat (:privat @app-db)]
-            (if (privat.auth/authorized? privat) 
-              (privat-session-info privat) 
-              (login-form @app-db))
-            "не загружены настройки"))]])))
-
-
-
-
-(defn customers-index [app-db]
-  (template (customers/index @app-db)))
-
-
-(defn suppliers-index [app-db]
-  (let [suppliers (get-in @app-db [:manager :db :suppliers])
-        edrpou-uuid (keyword (get-in @app-db [:manager :uuids :supplier-edrpou]))]
-    (template
-     [:form {:method :POST}
-      [:input.btn.btn-primary {:type :submit :value "Загрузить из Manager"}]
-      [:a.btn.btn-default {:href "/settings/load?data=suppliers"} "Загрузить из кеша"]]
-     [:div.col-md-6
-      (x-panel "Поставщики из Manager"
-        [:table.table
-         [:thead]
-         [:tbody
-          (for [supplier suppliers]
-            (let [{n :Name :as m} (val supplier)
-                  uuid (key supplier)]
-              [:tr
-               [:td [:a {:href (str "/suppliers/" (name uuid))} n]]
-               [:td (get-in m [:CustomFields edrpou-uuid])]]))]])]
-     [:div.col-md-6
-      (parse-edrpou-statements @app-db)])))
-
-
- 
-
-(defn fetch-statements! [app-db stdate endate]
+(defn fetch-statements! [app-db stdate endate] ;; still manager used
   (do
    (swap! app-db assoc-in [:manager :db :statements] (privat.api/get-statements (:privat @app-db) stdate endate))
    (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.util/make-statements-list (:manager @app-db))
@@ -191,44 +123,17 @@
 (defn post-statement! [index]
   (template (mstatement/post! index @app-db)))
 
-(defn fetch-suppliers! [manager-db]
-  (do
-    (manager.api/get-index2! :suppliers manager-db)
-    (manager.api/populate-db! :suppliers manager-db)
-    (ring.util.response/redirect "/suppliers")))
-
-  
-(defn form-supplier [uuid m]
-  [:form {:method :POST}
-   [:label.col-md-2.control-label {:for :edrpou} "ЕДРПОУ"]
-   [:input#edrpou {:type :text :name "edrpou" :value (:edrpou m)}]
-   [:div.ln_solid]
-   [:div.controls
-    [:input.btn.btn-primary {:type :submit :value "Сохранить"}]]])
-
-
 (defn single-customer [uuid app-db]
    (template (customers/single uuid @app-db)))
 
-
-(defn single-supplier [uuid]
-  (let [cust (get-in @manager [:db :suppliers (keyword uuid)])
-        n (:Name cust)
-        edrpou (get-in cust [:CustomFields (keyword (:supplier-edrpou (get @manager :uuids)))])]
-    (template
-     [:div.col-md-4
-      (x-panel n (form-supplier uuid {:edrpou edrpou}))])))
+(defn single-supplier [uuid app-db]
+  (template (suppliers/single uuid @app-db)))
 
 (defn update-customer! [uuid m app-db]
   (template (customers/update! uuid m app-db)))
 
-(defn update-supplier! [uuid m]
-  (let [cust (keyword (get-in @manager [:uuids :supplier-edrpou]))
-        edrpou (:edrpou m)
-        update-map (assoc-in (manager.api/fetch-uuid-item! uuid manager) [:CustomFields cust] edrpou)]
-    (template
-     [:p "Updated"
-      (manager.api/api-update! uuid update-map manager)])))
+(defn update-supplier! [uuid m app-db]
+  (template (suppliers/update! uuid m app-db)))
 
 (defn login! [app-db]
  (with-redirect
@@ -238,11 +143,7 @@
         (get-in [:privat :session])
         (update :expires #(time.coerce/from-long (* % 1000)))
         utils/map-to-html-list))
-  "/accounts"))
-
-(defn rests-index [app-db]
-  (template [:h1 "Остатки"]
-            (rests/index app-db)))
+  "/settings"))
 
 (defn with-redirect [f to]
   (do
@@ -250,28 +151,29 @@
     (ring.util.response/redirect to))) 
 
 (defroutes app 
-  (GET "/" [] (settings app-db))
+  (GET "/" [] (with-redirect identity "/settings")) 
   (context "/customers" []
-           (GET "/" [] (customers-index app-db))
-           (POST "/" [] (with-redirect (customers/fetch-customers! app-db) "/customers"))
+           (GET "/" [] (template (customers/index @app-db)))
+           (POST "/" [] (with-redirect (customers/fetch! app-db) "/customers"))
            (GET "/:uuid" [uuid] (single-customer uuid app-db)) 
            (POST "/:uuid" [uuid edrpou] (update-customer! uuid {:edrpou edrpou} app-db))) 
   (context "/suppliers" []
-           (GET "/" [] (suppliers-index app-db))
-           (GET "/:uuid" [uuid] (single-supplier uuid)) 
-           (POST "/:uuid" [uuid edrpou] (update-supplier! uuid {:edrpou edrpou})) 
-           (POST "/" [] (fetch-suppliers! manager)))
+           (GET "/" [] (template (suppliers/index @app-db)))
+           (GET "/:uuid" [uuid] (single-supplier uuid app-db)) 
+           (POST "/:uuid" [uuid edrpou] (update-supplier! uuid {:edrpou edrpou} app-db)) 
+           (POST "/" [] (with-redirect (suppliers/fetch! app-db) "/suppliers")))
   (context "/rests" []
-           (GET "/" [] (rests-index app-db))
-           (POST "/" [stdate endate] (with-redirect (rests/fetch-rests! app-db stdate endate) "/rests")))
+           (GET "/" [] (template [:h1 "Остатки"] (rests/index @app-db)))
+           (POST "/" [stdate endate] (with-redirect (rests/fetch! app-db stdate endate) "/rests")))
   (context "/settings" []
-   (GET "/load" [data] (with-redirect (config/load-cached-db (keyword data) app-db) "/accounts"))
-   (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/accounts")))
-  (GET "/accounts" [] (settings app-db))
-  (POST "/accounts" [account] (load-account! account app-db))
-  (POST "/login" [] (login! app-db))
-  (GET "/auth/logout" [] (with-redirect (privat.auth/logout! app-db) "/accounts"))
-  (context "/api" [])
+           (GET "/" [] (settings-index app-db))
+           (POST "/" [account] (load-account! account app-db))
+           (GET "/load" [data] (with-redirect (config/load-cached-db (keyword data) app-db) "/settings"))
+           (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/settings")))
+  (context "/auth" []
+           (POST "/login" [] (login! app-db))
+           (GET "/logout" [] (with-redirect (privat.auth/logout! app-db) "/settings")))
+  ;; (context "/api" [])
   (context "/statements" []
            (GET "/" [] (statements-index app-db))
            (POST "/" [stdate endate] (fetch-statements! app-db stdate endate))
@@ -304,10 +206,5 @@
   (start-dev))
 
 (defn -main [& args]
-  (when-let [conf (config/config-set (first args))]
-     (do
-      (config/load-settings! conf app-db)
-      (config/load-cached-db :customers app-db)
-      (config/load-cached-db :suppliers app-db)))
-      
+  (settings/load-account! (first args) app-db)
   (start-dev))
