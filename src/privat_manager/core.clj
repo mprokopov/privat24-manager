@@ -1,25 +1,23 @@
 (ns privat-manager.core
-  (:require [cheshire.core :as cheshire]
-            [privat-manager.privat.auth :as privat.auth]
+  (:require [privat-manager.privat.auth :as privat.auth]
             [privat-manager.utils :as utils]
             [privat-manager.rests :as rests]
             [privat-manager.statement :as mstatement]
             [privat-manager.customers :as customers]
             [privat-manager.suppliers :as suppliers]
             [privat-manager.settings :as settings]
+            [privat-manager.config :as config]
             [privat-manager.template :refer [x-panel sidebar-menu]]
             [compojure.core :refer [defroutes GET POST context]]
             [compojure.coercions :refer [as-int as-uuid]]
             [clj-time.coerce :as time.coerce]
-            [privat-manager.config :as config]
-            [clojure.walk :as walk]
             [ring.middleware.resource :refer [wrap-resource]]
             [ring.middleware.params :refer [wrap-params]]
             [ring.middleware.not-modified :refer [wrap-not-modified]]
             [ring.middleware.content-type :refer [wrap-content-type]]
+            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [hiccup.core]
             [ring.adapter.jetty :refer [run-jetty]]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [clojure.string :as str])
   (:gen-class))
 
