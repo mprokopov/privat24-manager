@@ -321,7 +321,7 @@
     (manager.api/api-post2! category-key (render-manager-statement statement) db))) 
 
 (defn get-statement-by-index [x db]
-  (let [statements (get-in @db [:db :statements])]
+  (let [statements (get-in @db [:manager :db :mstatements])]
     (nth statements x)))
 
 

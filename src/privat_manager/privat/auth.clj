@@ -10,13 +10,15 @@
       (swap! app-db assoc-in [:privat :session] nil))))
 
 (defn auth [app-db]
-  (let [{app-id :app-id app-secret :app-secret} (:privat @app-db)
+  (let [{app-id :app-id app-secret :app-secret} (get @app-db :privat)
         {body :body status :status} (api/post {:uri "auth/createSession"
                                                :body {"clientId" app-id
                                                       "clientSecret" app-secret}})] 
     (when (= status 200)
       (let [{id :id roles :roles expires :expiresIn} (cheshire/parse-string body true)]
-        (swap! app-db assoc-in [:privat :session] {:id id :roles roles :expires expires}))))) 
+        (swap! app-db assoc-in [:privat :session] {:id id
+                                                   :roles roles
+                                                   :expires expires})))))
 
 
 (defn auth-p24

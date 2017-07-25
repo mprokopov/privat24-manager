@@ -28,8 +28,6 @@
         body (get request :body)]
     (dorun (map #(swap! settings assoc-in [:db k (keyword %)] nil) body))))
 
-    
-
 (defn fetch-uuid-item! [uuid settings]
   (let [{login :login password :password} @settings
         request (client/get (item-link2 uuid settings)
@@ -107,3 +105,7 @@
 (defn edrpou-by-supplier2 [uuid manager-db]
   (let [custom-edrpou-uuid (keyword (get-in @manager-db [:uuids :supplier-edrpou]))] 
     (get-in @manager-db [:db :suppliers (keyword uuid) :CustomFields custom-edrpou-uuid])))
+
+;; (defmulti statement-link [] (fn [statement _] (select-keys [:payment :transfer])))
+
+(def statement-types #{:receipt :transfer :payment})

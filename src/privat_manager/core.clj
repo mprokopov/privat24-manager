@@ -25,12 +25,14 @@
   (:import java.util.Locale)
   (:gen-class))
 
+(declare with-redirect)
+
 
 (def app-db (atom {:business-id ""
                    :privat nil
                    :manager nil}))
 
-(def privat (lentes/derive (lentes/key :privat) app-db))
+;; (def privat (lentes/derive (lentes/key :privat) app-db))
 (def manager (lentes/derive (lentes/key :manager) app-db))
 
 
@@ -65,7 +67,7 @@
            [:span "Предприятие"]
            [:h2 (:business-id @app-db)]]]
          [:br]
-         (sidebar-menu manager)]]
+         (sidebar-menu (:manager @app-db))]]
        [:div.top_nav
         [:div.nav_menu
          [:nav
@@ -90,9 +92,13 @@
 
 
 (defn load-account! [account app-db]
-  (template
-   (utils/map-to-html-list
-     (config/load-settings! account app-db))))
+  (with-redirect
+   ;; (utils/map-to-html-list
+    (do
+      (config/load-settings! account app-db)
+      (config/load-cached-db :customers app-db)
+      (config/load-cached-db :suppliers app-db))
+    "/accounts"))
 
 
 (defn login-form [app-db]
@@ -127,9 +133,9 @@
            [:a.btn.btn-danger {:href "/settings/save?data=suppliers"} "Поставщиков"]])]
         [:div.col-md-3
          (x-panel "Приват24"
-          (if @privat
-            (if (privat.auth/authorized? (:privat @app-db))
-              (privat-session-info (:privat @app-db))
+          (if-let [privat (:privat @app-db)]
+            (if (privat.auth/authorized? privat) 
+              (privat-session-info privat) 
               (login-form @app-db))
             "не загружены настройки"))]])))
 
@@ -245,10 +251,8 @@
                       [:th.col-md-2 "Тип"]
                       [:th.col-md-3 "Контрагент"]
                       [:th "Назначение"]]]
-                    
                     [:tbody
                      (map f statements (iterate inc 0))]]))])))
-       
 
 (defn paging-statements [id]
    (let [statements (get-in @app-db [:manager :db :mstatements])
@@ -367,8 +371,6 @@
     (template
      [:div.col-md-4
       (x-panel n (form-supplier uuid {:edrpou edrpou}))])))
-       
-
 
 (defn update-customer! [uuid m manager-db]
   (let [cust (keyword (get-in @manager-db [:uuids :customer-edrpou]))
@@ -386,13 +388,15 @@
      [:p "Updated"
       (manager.api/api-update! uuid update-map manager)])))
 
-(defn login-step2 [app-db]
- (template
+(defn login! [app-db]
+ (with-redirect
   (do
     (privat.auth/auth app-db)
     (-> (privat.auth/auth-p24 app-db)
         (get-in [:privat :session])
-        utils/map-to-html-list))))
+        (update :expires #(time.coerce/from-long (* % 1000)))
+        utils/map-to-html-list))
+  "/accounts"))
 
 (defn rests-index [app-db]
   (let [rests (get-in @app-db [:manager :db :rests])]
@@ -448,7 +452,7 @@
    (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/accounts")))
   (GET "/accounts" [] (settings app-db))
   (POST "/accounts" [account] (load-account! account app-db))
-  (POST "/login" [] (login-step2 app-db))
+  (POST "/login" [] (login! app-db))
   (GET "/auth/logout" [] (with-redirect (privat.auth/logout! app-db) "/accounts"))
   (context "/api" [])
   (context "/statements" []
@@ -483,4 +487,10 @@
   (start-dev))
 
 (defn -main [& args]
+  (when-let [conf (first args)]
+     (do
+      (config/load-settings! conf app-db)
+      (config/load-cached-db :customers app-db)
+      (config/load-cached-db :suppliers app-db)))
+      
   (start-dev))

@@ -1,5 +1,8 @@
 (ns privat-manager.template
-  (:require [privat-manager.utils :as utils]))
+  (:require [privat-manager.utils :as utils]
+            [clj-time.format :as time.format]
+            [clj-time.coerce :as time.coerce])
+  (:import java.util.Locale))
 
 
 (defn x-panel [title body]
@@ -13,10 +16,15 @@
    [:div.x_content body]])
 
 (defn privat-session-info [privat-session]
-  (let [{{roles :roles :as session} :session bid :business-id} privat-session]
+  (let [{{roles :roles expires :expires :as session} :session bid :business-id} privat-session
+        formatter (time.format/with-locale (time.format/formatter "HH:mm dd MMMM YYYY") (Locale. "ru"))
+        expire (->> (* 1000 expires)
+                    time.coerce/from-long
+                    (time.format/unparse formatter))] 
     [:div
      [:h2 "Бизнес: " bid]
-     [:h4 "Роли: " (clojure.string/join "," roles)]
+     [:h4 "Роли: " (clojure.string/join ", " roles)]
+     [:p expire]
      [:p (utils/map-to-html-list session)]
      [:a.btn.btn-default {:href "/auth/logout"} "Выйти"]]))
 
@@ -25,7 +33,7 @@
   [:div#sidebar-menu.main_menu_side.hidden-print.main_menu
    [:div.menu_section
     [:h3 "Menu"]
-    (let [{:keys [customers suppliers mstatements rests]} (get @db :db)]
+    (let [{:keys [customers suppliers mstatements rests]} (get db :db)]
       [:ul.nav.side-menu
        [:li
         [:a [:i.fa.fa-home] "Privat24" [:span.fa.fa-chevron-down]]
