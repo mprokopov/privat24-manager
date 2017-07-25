@@ -316,9 +316,9 @@
 (defn post2
   "parses initial bank statement and makes POST to Manager API
   db should contain {:login '' :password ''}"
-  [statement db]
+  [statement manager-db]
   (let [category-key (get-category-key statement)]
-    (manager.api/api-post2! category-key (render-manager-statement statement) db))) 
+    (manager.api/api-post2! category-key (render-manager-statement statement) manager-db))) 
 
 (defn get-statement-by-index [x db]
   (let [statements (get-in @db [:manager :db :mstatements])]

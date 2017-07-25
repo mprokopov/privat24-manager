@@ -5,10 +5,17 @@
 
 (def api (str "http://manager.it-premium.com.ua:8080/api/"))
 
+(def statement-types #{:receipt :transfer :payment})
 
 (defn category-link2 [k settings & index?]
   (let [{bid :business-id} @settings
         cat-uuid (get-in @settings [:uuids k])]
+    (str api bid "/" cat-uuid
+         (when index? "/index.json"))))
+
+(defn category-link [k settings & index?]
+  (let [{bid :business-id} settings
+        cat-uuid (get-in settings [:uuids k])]
     (str api bid "/" cat-uuid
          (when index? "/index.json"))))
 
@@ -55,9 +62,9 @@
 
 (defn api-post2!
   "post map to manager API under key k"
-  [k m db]
-  (let [{:keys [login password]} @db]
-   (client/post (category-link2 k db)
+  [k m manager-db]
+  (let [{:keys [login password]} manager-db]
+   (client/post (category-link k manager-db)
                 {:accept :json
                  :content-type :json
                  :basic-auth [login password]
@@ -108,4 +115,3 @@
 
 ;; (defmulti statement-link [] (fn [statement _] (select-keys [:payment :transfer])))
 
-(def statement-types #{:receipt :transfer :payment})

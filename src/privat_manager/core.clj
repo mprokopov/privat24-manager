@@ -141,23 +141,22 @@
             "не загружены настройки"))]])))
 
 
-(defn parse-edrpou-statements [app-db]
-  (let [statements (get-in app-db [:manager :db :mstatements])]
-    (if statements
-     [:table.table
-      [:thead
+(defn parse-edrpou-statements [{{{statements :mstatements} :db} :manager}]
+  (if statements
+    [:table.table
+     [:thead
+      [:tr
+       [:th "Клиент"]
+       [:th "ЕДРПОУ"]
+       [:th "Поставщик"]
+       [:th "ЕДРПОУ"]]]
+     (for [statement statements] 
        [:tr
-        [:th "Клиент"]
-        [:th "ЕДРПОУ"]
-        [:th "Поставщик"]
-        [:th "ЕДРПОУ"]]]
-      (for [statement statements] 
-        [:tr
-         [:td (get-in statement [:debit :name])]
-         [:td (get-in statement [:debit :edrpou])]
-         [:td (get-in statement [:credit :name])]
-         [:td (get-in statement [:credit :edrpou])]])]
-     [:p "Необходимо загрузить выписки"])))
+        [:td (get-in statement [:debit :name])]
+        [:td (get-in statement [:debit :edrpou])]
+        [:td (get-in statement [:credit :name])]
+        [:td (get-in statement [:credit :edrpou])]])]
+    [:p "Необходимо загрузить выписки"]))
 
 
 (defn customers-index [app-db]
@@ -261,64 +260,8 @@
 (defn single-statement [index]
   (template (mstatement/single index @app-db)))
 
-;; (defn single-statement2 [index]
-;;   (let [statement (-> (get-in @app-db [:manager :db :mstatements])
-;;                       (nth index))
-;;         {:keys [credit date debit amount comment recognized purpose payee payer]} statement
-;;         custom-formatter (time.format/with-locale (time.format/formatter "dd.MM.yy в HH:mm") (Locale. "ru"))
-;;         custom-formatter2 (time.format/formatter "dd.MM.yy")
-;;         mdate2 (time.format/unparse custom-formatter2 date)
-;;         mdate (time.format/unparse custom-formatter date)
-;;         label (fn [statement] [:span.label.label-primary (-> (select-keys statement [:payment :receipt :transfer]) first key)])]
-;;     (template
-;;      [:div.col-md-10
-;;       (x-panel [:div (when recognized [:i.fa.fa-check-square]) " банковская выписка от " mdate2] 
-;;                [:div
-;;                 [:div.jumbotron
-;;                  [:h1 payee payer " " comment " " amount]
-;;                  [:h1 mdate] 
-;;                  [:p (label statement) " " purpose]
-;;                  [:div.controls
-;;                    [:form {:method :POST}
-;;                      [:input.btn.btn-danger {:type "submit" :value "Отправить в Manager"}]]]]
-
-;;                 [:div.col-md-6
-;;                   [:h3 "Кредитор"]
-;;                   (utils/map-to-html-list credit)]
-;;                 [:div.col-md-6
-;;                   [:h3 "Дебитор"]
-;;                   (utils/map-to-html-list debit)]
-;;                 [:div.clearfix
-;;                  (utils/map-to-html-list (privat.util/render-manager-statement statement))]
-;;                 [:div.divider]
-;;                 [:div.controls.row
-;;                   (mstatement/paging index @app-db)]])])))
-
-;; (defn post-statement [id]
-;;   (let [statement (nth (get-in @app-db [:manager :db :statements]) id)
-;;         ;bid (get @db :business-id)
-;;         {status :status headers :headers} (privat.util/post statement manager)]
-;;     (template
-;;      (if (= status 201)
-;;        [:div
-;;         [:h1 "Успешно создано!"]
-;;         [:p (get headers "Location")]]
-;;         ;[:a {:href "http://manager.it-premium.local:8080/payment-view?Key=4bf84e58-013d-413b-88c0-99454c23b119&FileID=937914e4-5686-4eec-ba21-474b1c0f982e"} "посмотреть"]]
-;;       [:h1 "Произошла ошибка при создании!"])
-;;      (paging-statements id))))
-
-(defn post-statement! [id]
-  (let [statements (get-in @app-db [:manager :db :mstatements])
-        statement (nth statements id)
-        {status :status headers :headers} (privat.util/post2 statement manager)]
-    (template
-     (if (= status 201)
-       [:div
-        [:h1 "Успешно создано!"]
-        [:p (get headers "Location")]]
-                                        ;[:a {:href "http://manager.it-premium.local:8080/payment-view?Key=4bf84e58-013d-413b-88c0-99454c23b119&FileID=937914e4-5686-4eec-ba21-474b1c0f982e"} "посмотреть"]]
-       [:h1 "Произошла ошибка при создании!"])
-     (mstatement/paging id statements)))) 
+(defn post-statement! [index]
+  (template (mstatement/post! index @app-db)))
 
 (defn fetch-suppliers! [manager-db]
   (do

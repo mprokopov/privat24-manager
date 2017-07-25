@@ -82,3 +82,15 @@
                       [:th "Назначение"]]]
                     [:tbody
                      (map f statements (iterate inc 0))]]))])
+
+(defn post! [index {{{statements :mstatements} :db} :manager :as manager}]
+  (let [statement (nth statements index)
+        {status :status headers :headers} (privat.util/post2 statement manager)]
+    [:div
+     (if (= status 201)
+       [:div
+        [:h1 "Успешно создано!"]
+        [:p (get headers "Location")]] ; /api/937914e4-5686-4eec-ba21-474b1c0f982e/5890c101-ade6-4d67-8793-f484dcf30308.json
+                                        ;[:a {:href "http://manager.it-premium.local:8080/payment-view?Key=4bf84e58-013d-413b-88c0-99454c23b119&FileID=937914e4-5686-4eec-ba21-474b1c0f982e"} "посмотреть"]]
+       [:h1 "Произошла ошибка при создании!"])
+     (paging index statements)])) 
