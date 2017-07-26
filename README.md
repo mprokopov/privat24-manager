@@ -5,7 +5,7 @@ Web application for Privat24 for business statements import and Manager.io API e
 
 Works with [Privat24 API](https://link.privatbank.ua/console/wiki)
 
-and locally installed [Manager](https://manager.io) server
+and locally installed [Manager](https://www.manager.io) server
 
 ## Usage
 
@@ -16,6 +16,14 @@ and locally installed [Manager](https://manager.io) server
     $ lein run itservice
     
     this loads "itservice" configuration and starts web server on localhost port 8080
+    
+   
+
+    how build and run in production
+
+    $ lein uberjar 
+    
+    $ java -jar target/uberjar/privat-manager-1.0.1-standalone.jar
 
 and open browser http://localhost:3000/statements
 
