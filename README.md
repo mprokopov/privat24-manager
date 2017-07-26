@@ -1,4 +1,4 @@
-# Privat24 statements export to Manager.io API
+# Bank Privat24 statements export to Manager.io API
 
 Web application for Privat24 for business statements import and Manager.io API export
 
@@ -11,7 +11,9 @@ and locally installed [Manager](https://www.manager.io) server
 
     $ lein ring server
 
-    or
+    and open browser http://localhost:3000/statements
+
+
     
     $ lein run itservice
     
@@ -19,13 +21,12 @@ and locally installed [Manager](https://www.manager.io) server
     
    
 
-    how build and run in production
+    how to build and run in production
 
     $ lein uberjar 
     
     $ java -jar target/uberjar/privat-manager-1.0.1-standalone.jar
 
-and open browser http://localhost:3000/statements
 
 
 ![Screenshot 1](/doc/shot1.png?raw=true "Screenshot 1")
