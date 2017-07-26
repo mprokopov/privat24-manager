@@ -11,6 +11,12 @@ and locally installed Manager server
 
     $ lein ring server
 
+    or
+    
+    $ lein run itservice
+    
+    this loads "itservice" configuration and starts web server on localhost port 8080
+
 and open browser http://localhost:3000/statements
 
 
@@ -23,6 +29,10 @@ and open browser http://localhost:3000/statements
 ![Screenshot 3](/doc/shot3.png?raw=true "Screenshot 3")
 
 
+![Screenshot 4](/doc/shot4.png?raw=true "Screenshot 4")
+
+
+![Screenshot 5](/doc/shot5.png?raw=true "Screenshot 5")
 ## License
 
 Copyright © 2017 Maksym Prokopov

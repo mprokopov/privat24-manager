@@ -27,9 +27,6 @@
                    :privat nil
                    :manager nil}))
 
-;; (def privat (lentes/derive (lentes/key :privat) app-db))
-;; (def manager (lentes/derive (lentes/key :manager) app-db))
-
 (defn template
   "шаблон этого HTML"
   [& args]
