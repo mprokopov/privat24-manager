@@ -5,7 +5,7 @@ Web application for Privat24 for business statements import and Manager.io API e
 
 Works with [Privat24 API](https://link.privatbank.ua/console/wiki)
 
-and locally installed Manager server
+and locally installed [Manager](https://manager.io) server
 
 ## Usage
 
