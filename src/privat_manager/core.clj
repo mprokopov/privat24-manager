@@ -16,6 +16,8 @@
             [ring.middleware.not-modified :refer [wrap-not-modified]]
             [ring.middleware.content-type :refer [wrap-content-type]]
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
+            [yada.yada :refer [listener resource as-resource] :as yada]
+            [yada.bidi :as bidi]
             [hiccup.core]
             [ring.adapter.jetty :refer [run-jetty]]
             [clojure.string :as str])
@@ -160,6 +162,10 @@
            (POST "/:id" [id :<< as-int] (post-statement! id))
            (GET "/:id" [id :<< as-int] (single-statement id))))
 
+(yada/handler
+ {:methods {:get
+            {:produces "text/html"
+             :response "<h1>Hi</h1>"}}})
 
 (def handler
   (-> app
@@ -184,6 +190,72 @@
 (defn restart []
   (stop-dev)
   (start-dev))
+
+(def rests-index-resource
+  (yada/resource
+   {
+    :id :rest/index
+    :produces "text/html"
+     :methods { :get { :response (template (rests/index @app-db))}}}))
+
+(def statements-index-resource
+  (yada/resource
+   {
+    :id :statements/index
+    :produces "text/html"
+    :methods { :get { :response (template (mstatement/index @app-db))}}}))
+
+(defn load-s [ctx]
+  (let [account (get-in ctx [:parameters :form :account])]
+    (template
+      (settings/load-account! account app-db))))
+
+(def settings-resource
+  (yada/resource
+   {
+    :id :settings/index
+    :produces "text/html"
+    :methods {:get {:response (template (settings/index app-db))}
+              :post {
+                     :consumes "application/x-www-form-urlencoded"
+                     :parameters {:form {:account String}}
+                     :response load-s}}}))
+
+(def routes
+  ["/"
+   [
+    ["db"
+     [
+      ["/privat" (yada/yada (get @app-db :privat))]
+      ["/manager" (yada/yada (get-in @app-db [:manager]))]]]
+    ["auth/login" (yada/resource {
+                                  :produces "text/hml"
+                                  :methods { :post { :response (login! app-db)}}})]
+    ["rests" rests-index-resource]
+    ["statements" statements-index-resource]
+    ["settings" settings-resource]
+    ["" (yada.resources.classpath-resource/new-classpath-resource "public/vendor/gentelella")]]])
+
+((:close svr))
+
+(def svr
+  (yada/listener
+   routes
+   {:port 3000}))
+
+(defn stop! []
+  ((:close svr)))
+;; (def svr
+;;   (yada/listener
+;;    ["/"
+;;     [
+;;      ["rest" rests-index-resource]
+;;      ["hello" (as-resource "Hello World!")]
+;;      ["test" (resource {:produces "text/plain"
+;;                         :response "This is a test!"})]
+;;      [true (as-resource nil)]]]
+;;    {:port 3000}))
+
 
 (defn -main [& args]
   (settings/load-account! (first args) app-db)
