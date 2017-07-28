@@ -71,8 +71,8 @@
                  :body (cheshire/generate-string m)})))
 
 (defn api-destroy! [uuid db]
-  (let [{:keys [login password]} @db]
-    (client/delete (item-link2 uuid db)
+  (let [{:keys [login password]} (:manager @db)]
+    (client/delete (item-link uuid db)
                    {:basic-auth [login password]})))
 
 

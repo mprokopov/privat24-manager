@@ -100,7 +100,7 @@
 (defn single-statement [index]
   (template (mstatement/single index @app-db)))
 
-(defn post-statement! [index]
+(defn post-statement! [index app-db]
   (template (mstatement/post! index @app-db)))
 
 (defn single-customer [uuid app-db]
@@ -152,20 +152,22 @@
            (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/settings")))
   (context "/auth" []
            (POST "/login" [] (login! app-db))
+           (GET "/login/otp" [id] (template (privat.auth/send-otp2! id app-db)))
+           (POST "/login/otp" [otp] (with-redirect (privat.auth/check-otp2! otp app-db)))
            (GET "/logout" [] (with-redirect (privat.auth/logout! app-db) "/settings")))
   ;; (context "/api" [])
   (context "/statements" []
            (GET "/" [] (statements-index app-db))
            (POST "/" [stdate endate] (fetch-statements! app-db stdate endate))
-           (POST "/:id" [id :<< as-int] (post-statement! id))
+           (POST "/:id" [id :<< as-int] (post-statement! id app-db))
            (GET "/:id" [id :<< as-int] (single-statement id))))
 
 
 (def handler
   (-> app
       (wrap-defaults (update-in site-defaults [:security] dissoc :anti-forgery))
-      (wrap-resource "public/vendor/gentelella")
       (wrap-resource "public")
+      (wrap-resource "public/vendor/gentelella")
       (wrap-params)
       (wrap-content-type)
       (wrap-not-modified)))

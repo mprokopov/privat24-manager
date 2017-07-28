@@ -84,7 +84,7 @@
               [:tbody
                 (map f statements (iterate inc 0))]]))])
 
-(defn post! [index {{{statements :mstatements} :db} :manager :as manager}]
+(defn post! [index {{{statements :mstatements} :db :as manager} :manager}]
   (let [statement (nth statements index)
         {status :status headers :headers} (privat.util/post2 statement manager)]
     [:div

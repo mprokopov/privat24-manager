@@ -43,6 +43,16 @@
     (api/post {:uri "p24BusinessAuth/sendOtp"
                :body {"sessionId" id "otpDev" otp-dev}})))
 
+
+(defn send-otp2! [otp app-db]
+  (let [{{{id :id} :session} :privat} @app-db
+        {body :body status :status} (api/post {:uri "p24BusinessAuth/sendOtp"
+                                               :body {"sessionId" id "otpDev" otp}})]
+    (when (= 200 status)
+      (let [{message :message} (cheshire/parse-string body true)]
+        (swap! app-db update-in [:privat :session] merge {:message message :status :otp-sent})))))
+
+
 (defn check-otp [creds otp]
   (let [id (get-in @creds [:session :id])
         {body :body status :status} (api/post {:uri "p24BusinessAuth/checkOtp" :body {"sessionId" id "otp" otp}})]
@@ -54,12 +64,25 @@
                                        :expires expiresIn
                                        :roles roles})))))
 
-(defn validate-session [session]
-  (api/post {:uri "auth/validateSession"
-             :body {"sessionId" (get-in @session [:session :id])}}))
 
-(defn logged? [p-creds]
-  (get-in @p-creds [:session :id]))
+(defn check-otp2! [otp app-db]
+  (let [{{{id :id} :session} :privat} @app-db
+        {body :body status :status} (api/post {:uri "p24BusinessAuth/checkOtp" :body {"sessionId" id "otp" otp}})]
+    (when (= status 200)
+      (let [{:keys [clientId message roles expiresIn id]} (cheshire/parse-string body true)]
+        (swap! app-db assoc-in [:privat :session] {:client-id clientId
+                                                   :id id
+                                                   :status :otp-verified
+                                                   :message message
+                                                   :expires expiresIn
+                                                   :roles roles})))))
+
+(defn validate-session [{privat :privat}]
+  (api/post {:uri "auth/validateSession"
+             :body {"sessionId" (get-in privat [:session :id])}}))
+
+(defn logged? [{privat :privat}]
+  (get-in privat [:session :id]))
 
 (defn authorized?
   "ROLE_P24_BUSINESS should be under [:session :roles] atom"

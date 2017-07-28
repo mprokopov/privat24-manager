@@ -25,9 +25,28 @@
    [:h3 (str "Доступ к " (get-in app-db [:privat :login]))]
    [:input.btn.btn-primary {:type :submit :value "Пройти авторизацию Privat24"}]])
 
+(defn send-otp-form [{{{otp-persons :message} :session} :privat :as app-db}]
+  (let [link (fn [{id :id number :number}]
+               [:li
+                [:a {:href (format "/auth/login/otp?id=%s" id)} number]])]
+    [:div
+     (privat-session-info app-db)
+     [:h3 "Отправить OTP"]
+     [:ul
+       (map link otp-persons)]]))
+
+(defn check-otp-form [app-db]
+  [:form.form-horizontal {:method :post}
+   [:div.form-group
+    [:label.control-label "OTP"
+      [:input {:type :text :name :otp}]]
+    [:div.ln_solid]
+    [:div.controls
+     [:input.btn {:type :submit :value "Отправить"}]]]])
+
 (defn index [app-db]
   (let [f (fn [e] [:option {:value e :selected (= e (:business-id @app-db))} e])
-        {roles :roles} (:privat @app-db)]
+        {roles :roles session :session} (:privat @app-db)]
      [:div
         [:div.col-md-4
          (x-panel
@@ -50,8 +69,13 @@
         [:div.col-md-4
          (x-panel "Приват24"
           (if (:privat @app-db)
-            (if (privat.auth/authorized? @app-db) 
-              (privat-session-info @app-db) 
+            (if (privat.auth/logged? @app-db) 
+              (if (privat.auth/authorized? @app-db)
+                (privat-session-info @app-db)
+                (if (= (:status session) :otp-sent)
+                  (check-otp-form @app-db)
+                  (send-otp-form @app-db)))
+                ;[:h3 "OTP" (map utils/map-to-html-list (get-in @app-db [:privat :session :message]))])
               (login-form @app-db))
             "не загружены настройки"))]]))
 
