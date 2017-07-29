@@ -10,7 +10,8 @@
                  [compojure "1.6.0"]
                  [hiccup "1.0.5"]
                  [ring/ring-jetty-adapter "1.6.1"]
-                 [ring/ring-defaults "0.3.0"]]
+                 [ring/ring-defaults "0.3.0"]
+                 [com.stuartsierra/component "0.3.2"]]
   :main ^:skip-aot privat-manager.core
   :target-path "target/%s"
   :ring {:handler privat-manager.core/handler}

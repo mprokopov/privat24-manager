@@ -18,6 +18,7 @@
             [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
             [hiccup.core]
             [ring.adapter.jetty :refer [run-jetty]]
+            [com.stuartsierra.component :as component]
             [clojure.string :as str])
   (:gen-class))
 
@@ -26,6 +27,7 @@
 (def app-db (atom {:business-id ""
                    :privat nil
                    :manager nil}))
+
 
 (defn template
   "шаблон этого HTML"
@@ -186,6 +188,22 @@
 (defn restart []
   (stop-dev)
   (start-dev))
+
+
+(defrecord Webserver [host port server]
+  component/Lifecycle
+  (start [component]
+    (println "Start web server")
+    (assoc server :server (run-jetty #'handler {:port port :join? false})))
+  (stop [component]
+    (println "Stop web server")
+    (.stop @server)
+    (assoc component :server nil)))
+
+(defn system [config-options]
+  (let [{:keys [host port] :or {:host "localhost" :port 8080}} config-options]
+    (component/system-map
+     :app (map->Webserver {:host host :port port}))))
 
 (defn -main [& args]
   (settings/load-account! (first args) app-db)
