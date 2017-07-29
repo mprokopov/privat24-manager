@@ -279,7 +279,7 @@
          :payer (get-in statement [:debit :name])))
 
 (defmulti render-manager-statement (fn [m] (-> m
-                                                (select-keys [:payment :receipt :transfer])
+                                                (select-keys manager.api/statement-types)  ; :payment, :receipt, :transfer
                                                 first
                                                 key)))
 
