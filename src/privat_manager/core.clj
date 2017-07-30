@@ -174,36 +174,34 @@
       (wrap-content-type)
       (wrap-not-modified)))
 
-(defonce server (atom nil))
-
- 
-(defn start-dev []
-  (reset! server (run-jetty #'handler {:port 8080 :join? false})))
-
-
-(defn stop-dev []
-  (.stop @server))
-
-
-(defn restart []
-  (stop-dev)
-  (start-dev))
-
-
 (defrecord Webserver [host port server]
   component/Lifecycle
   (start [component]
     (println "Start web server")
-    (assoc server :server (run-jetty #'handler {:port port :join? false})))
+    (assoc component :server (run-jetty #'handler {:port port :join? false})))
   (stop [component]
     (println "Stop web server")
-    (.stop @server)
+    (.stop server)
     (assoc component :server nil)))
 
 (defn system [config-options]
-  (let [{:keys [host port] :or {:host "localhost" :port 8080}} config-options]
+  (let [{:keys [host port]} config-options]
     (component/system-map
      :app (map->Webserver {:host host :port port}))))
+
+(def sys (system {:host "locahost" :port 3000}))
+
+(defn start-dev []
+  (alter-var-root #'sys component/start))
+;; (reset! server (run-jetty #'handler {:port 8080 :join? false})))
+
+(defn stop-dev []
+  (alter-var-root #'sys component/stop))
+  ;; (.stop @server))
+
+(defn restart []
+  (stop-dev)
+  (start-dev))
 
 (defn -main [& args]
   (settings/load-account! (first args) app-db)
