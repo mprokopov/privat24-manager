@@ -153,7 +153,10 @@
     :debit (parse-account (get-in statement ["debet"]))
     :credit (parse-account (get-in statement ["credit"]))})) 
 
-(def transform->manager2 (comp assoc-transaction-type parse-statement))
+;; (def transform->manager2 (comp assoc-transaction-type parse-statement))
+(defn privat->manager [app-db] (comp (map parse-statement)
+                                  (map assoc-transaction-type)
+                                  (map #(make-manager-statement % app-db))))
 
 (defn my-format [fmt n & [locale]]
   (let [locale (if locale (Locale. locale)

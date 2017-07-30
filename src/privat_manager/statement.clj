@@ -96,11 +96,16 @@
        [:h1 "Произошла ошибка при создании!"])
      (paging index statements)])) 
 
-;; TODO
 (defn fetch! [app-db stdate endate]
-  (do
-    (swap! app-db assoc-in [:manager :db :statements] (privat.api/get-statements (:privat @app-db) stdate endate))
-    (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.util/make-statements-list @app-db)
-                                                            (map privat.util/transform->manager2)
-                                                            (map #(privat.util/make-manager-statement % @app-db))
-                                                            (sort-by :date)))))
+  (let [statements (privat.api/get-statements (:privat @app-db) stdate endate)]
+    (swap! app-db assoc-in [:manager :db :mstatements] (->> statements
+                                                        (transduce (privat.util/privat->manager @app-db) conj)
+                                                        (sort-by :date)))))
+;; TODO
+;; (defn fetch2! [app-db stdate endate]
+;;   (do
+;;     (swap! app-db assoc-in [:manager :db :statements] (privat.api/get-statements (:privat @app-db) stdate endate))
+;;     (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.util/make-statements-list @app-db)
+;;                                                             (map privat.util/transform->manager2)
+;;                                                             (map #(privat.util/make-manager-statement % @app-db))
+;;                                                             (sort-by :date)))))
