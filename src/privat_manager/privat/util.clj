@@ -12,10 +12,10 @@
   (let [my-amount (my-format "%.2f" (if (< 0  amount) amount (- amount)) "en-US")
         payment {"Date" (time.format/unparse (time.format/formatters :date) date)
                  "Payee" payee
-                 "CreditAccount" (when credit-uuid (name credit-uuid))
+                 "CreditAccount" (when debit-uuid (name debit-uuid))
                  "Notes" (str "Reference: " refp)
                  "BankClearStatus" "Cleared"
-                 "Lines" [{"Account" (when debit-uuid (name debit-uuid))
+                 "Lines" [{"Account" (when credit-uuid (name credit-uuid))
                            "Description" purpose
                            "Amount" my-amount}]}]
     (cond-> payment
@@ -153,7 +153,7 @@
     :debit (parse-account (get-in statement ["debet"]))
     :credit (parse-account (get-in statement ["credit"]))})) 
 
-(def transform->manager2 (comp assoc-transaction-type parse-statement))
+;; (def transform->manager2 (comp assoc-transaction-type parse-statement))
 
 (defn my-format [fmt n & [locale]]
   (let [locale (if locale (Locale. locale)
@@ -170,8 +170,8 @@
          :recognized true
          :comment "оплата банковских расходов"
          :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid db)
-         :debit-uuid (get-uuid-by-key :operational-expences-bank db)))
+         :debit-uuid (:bank-account-uuid db)
+         :credit-uuid (get-uuid-by-key :operational-expences-bank db)))
 
 (defmethod make-manager-statement
   {:payment :phone}
@@ -181,9 +181,9 @@
          :recognized true
          :comment "оплата расходов связи"
          :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid db)
+         :debit-uuid (:bank-account-uuid db)
          :tax (get db :tax-uuid)
-         :debit-uuid (get-uuid-by-key :phone db)))
+         :credit-uuid (get-uuid-by-key :phone db)))
 
 
 (defmethod make-manager-statement
@@ -194,8 +194,8 @@
          :recognized true
          :comment "оплата налогов"
          :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid db)
-         :debit-uuid (get-uuid-by-key :taxes db)))
+         :debit-uuid (:bank-account-uuid db)
+         :credit-uuid (get-uuid-by-key :taxes db)))
 
 (defmethod make-manager-statement
   {:payment :salary}
@@ -205,8 +205,8 @@
          :recognized true
          :comment "выплата зарплаты"
          :amount (Math/abs (get statement :amount))
-         :credit-uuid (:bank-account-uuid db)
-         :debit-uuid ""))
+         :debit-uuid (:bank-account-uuid db)
+         :credit-uuid ""))
 
 (defmethod make-manager-statement
   {:payment :transfer}
@@ -279,7 +279,7 @@
          :payer (get-in statement [:debit :name])))
 
 (defmulti render-manager-statement (fn [m] (-> m
-                                                (select-keys [:payment :receipt :transfer])
+                                                (select-keys manager.api/statement-types)  ; :payment, :receipt, :transfer
                                                 first
                                                 key)))
 
@@ -331,3 +331,7 @@
 (defn format-floats [m]
   (let [f (fn [acc mkey mval] (assoc acc mkey (if (float? mval) (format "%.2f" mval) mval)))]
     (reduce-kv f {} m)))
+
+(defn privat->manager [app-db] (comp (map parse-statement)
+                                  (map assoc-transaction-type)
+                                  (map #(make-manager-statement % app-db))))

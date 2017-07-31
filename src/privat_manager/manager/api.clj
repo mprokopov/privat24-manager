@@ -71,8 +71,8 @@
                  :body (cheshire/generate-string m)})))
 
 (defn api-destroy! [uuid db]
-  (let [{:keys [login password]} @db]
-    (client/delete (item-link2 uuid db)
+  (let [{:keys [login password]} (:manager @db)]
+    (client/delete (item-link uuid db)
                    {:basic-auth [login password]})))
 
 
@@ -90,13 +90,21 @@
                                     (fn [raise] (.getMessage raise))))]
     (run! f db)))
 
-(defn populate-db!
+(defn populate-db3!
   "fetch item for every DB uuid and update entry"
   [k settings]
   (let [db (get-in @settings [:manager :db k])
         db2 (reduce #(assoc %1 (-> %2 key keyword) (fetch-uuid-item! (-> %2 key name) settings)) {} db)]
     (swap! settings assoc-in [:manager :db k] db2)
     "ok"))
+
+(defn populate-db!
+  "fetch item for every DB uuid and update entry"
+  [k app-db]
+  (let [db (get-in @app-db [:manager :db k])
+        f (fn [[k v]] {k (fetch-uuid-item! (name k) app-db)})]
+    (swap! app-db assoc-in [:manager :db k]
+     (into {} (pmap f db)))))
 
 ;; (defn edrpou-by-customer [customer]
 ;;   (get-in customer [:CustomFields (-> uuids :customer-edrpou keyword)]))

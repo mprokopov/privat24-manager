@@ -7,7 +7,7 @@
             [privat-manager.suppliers :as suppliers]
             [privat-manager.settings :as settings]
             [privat-manager.config :as config]
-            [privat-manager.template :refer [x-panel sidebar-menu]]
+            [privat-manager.template :refer [x-panel sidebar-menu] :as templ]
             [compojure.core :refer [defroutes GET POST context]]
             [compojure.coercions :refer [as-int as-uuid]]
             [clj-time.coerce :as time.coerce]
@@ -20,6 +20,7 @@
             [yada.bidi :as bidi]
             [hiccup.core]
             [ring.adapter.jetty :refer [run-jetty]]
+            [com.stuartsierra.component :as component]
             [clojure.string :as str])
   (:gen-class))
 
@@ -29,57 +30,9 @@
                    :privat nil
                    :manager nil}))
 
-(defn template
-  "шаблон этого HTML"
-  [& args]
-  (hiccup.core/html
-   [:html
-    [:head
-     [:meta {:http-equiv "Content-Type" :content "text/html; charset=UTF-8"}]
-     [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
-     [:link {:href "/vendors/bootstrap/dist/css/bootstrap.min.css" :rel "stylesheet"}]
-     [:link {:href "/vendors/bootstrap-daterangepicker/daterangepicker.css" :rel "stylesheet"}]
-     [:link {:href "/vendors/font-awesome/css/font-awesome.min.css" :rel "stylesheet"}]
-     [:link {:href "/build/css/custom.min.css" :rel "stylesheet"}]
-     [:link {:href "/vendors/google-code-prettify/bin/prettify.min.css" :rel "stylesheet"}]
- 
-     [:title "Admin"]]
-    [:body.nav-md
-     [:div.container.body
-      [:div.main_container
-       [:div.col-md-3.left_col
-        [:div.left_col.scroll-view
-         [:div.navbar.nav_title
-          [:a.site_title "Manager import"]]
-         [:div.clearfix]
-         [:div.profile.clearfix
-          [:div.profile_pic [:img.img-circle.profile_img {:src "/production/images/img.jpg"}]]
-          [:div.profile_info
-           [:span "Предприятие"]
-           [:h2 (:business-id @app-db)]]]
-         [:br]
-         (sidebar-menu (:manager @app-db))]]
-       [:div.top_nav
-        [:div.nav_menu
-         [:nav
-          [:div.nav.toggle
-           [:a#menu_toggle [:i.fa.fa-bars]]]
-          [:ul.nav.navbar-nav.navbar-right
-           [:li
-            [:a {:href "/auth/login"} "Логин"]]]]]]
-       [:div.right_col {:role "main" :style "min-height:914px;"}
-        ;; [:div.page-title
-        ;;  [:div.title_left
-        ;;   [:h3 "Страница"]] 
-        ;;  [:div.title_right]]
-        ;; [:div.clearfix]
-        [:div.row args]]]]
-     [:script {:src "/vendors/jquery/dist/jquery.min.js"}]
-     [:script {:src "/vendors/bootstrap/dist/js/bootstrap.js"}]
-     [:script {:src "/vendors/moment/min/moment.min.js"}]
-     [:script {:src "/vendors/bootstrap-daterangepicker/daterangepicker.js"}]
-     [:script {:src "/build/js/custom.js"}]
-     [:script {:src "/custom.js"}]]]))
+
+(defn template [& body]
+  (templ/template app-db body))
 
 
 (defn load-account! [account app-db]
@@ -87,8 +40,10 @@
     (settings/load-account! account app-db)
     "/settings"))
 
+
 (defn settings-index [app-db]
   (template (settings/index app-db)))
+
 
 (defn fetch-statements! [app-db stdate endate]
   (with-redirect
@@ -102,7 +57,7 @@
 (defn single-statement [index]
   (template (mstatement/single index @app-db)))
 
-(defn post-statement! [index]
+(defn post-statement! [index app-db]
   (template (mstatement/post! index @app-db)))
 
 (defn single-customer [uuid app-db]
@@ -154,12 +109,14 @@
            (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/settings")))
   (context "/auth" []
            (POST "/login" [] (login! app-db))
+           (GET "/login/otp" [id] (template (privat.auth/send-otp2! id app-db)))
+           (POST "/login/otp" [otp] (with-redirect (privat.auth/check-otp2! otp app-db)))
            (GET "/logout" [] (with-redirect (privat.auth/logout! app-db) "/settings")))
   ;; (context "/api" [])
   (context "/statements" []
            (GET "/" [] (statements-index app-db))
            (POST "/" [stdate endate] (fetch-statements! app-db stdate endate))
-           (POST "/:id" [id :<< as-int] (post-statement! id))
+           (POST "/:id" [id :<< as-int] (post-statement! id app-db))
            (GET "/:id" [id :<< as-int] (single-statement id))))
 
 (yada/handler
@@ -170,22 +127,36 @@
 (def handler
   (-> app
       (wrap-defaults (update-in site-defaults [:security] dissoc :anti-forgery))
-      (wrap-resource "public/vendor/gentelella")
       (wrap-resource "public")
+      (wrap-resource "public/vendor/gentelella")
       (wrap-params)
       (wrap-content-type)
       (wrap-not-modified)))
 
-(defonce server (atom nil))
+(defrecord Webserver [host port server]
+  component/Lifecycle
+  (start [component]
+    (println "Start web server")
+    (assoc component :server (run-jetty #'handler {:port port :join? false})))
+  (stop [component]
+    (println "Stop web server")
+    (.stop server)
+    (assoc component :server nil)))
 
- 
+(defn system [config-options]
+  (let [{:keys [host port]} config-options]
+    (component/system-map
+     :app (map->Webserver {:host host :port port}))))
+
+(def sys (system {:host "locahost" :port 3000}))
+
 (defn start-dev []
-  (reset! server (run-jetty #'handler {:port 8080 :join? false})))
-
+  (alter-var-root #'sys component/start))
+;; (reset! server (run-jetty #'handler {:port 8080 :join? false})))
 
 (defn stop-dev []
-  (.stop @server))
-
+  (alter-var-root #'sys component/stop))
+  ;; (.stop @server))
 
 (defn restart []
   (stop-dev)

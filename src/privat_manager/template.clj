@@ -1,9 +1,63 @@
 (ns privat-manager.template
   (:require [privat-manager.utils :as utils]
             [clj-time.format :as time.format]
-            [clj-time.coerce :as time.coerce])
+            [clj-time.coerce :as time.coerce]
+            [hiccup.core])
   (:import java.util.Locale))
 
+(declare date-form sidebar-menu)
+
+(defn template
+  "шаблон этого HTML"
+  [app-db & body]
+  (hiccup.core/html
+   [:html
+    [:head
+     [:meta {:http-equiv "Content-Type" :content "text/html; charset=UTF-8"}]
+     [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
+     [:link {:href "/vendors/bootstrap/dist/css/bootstrap.min.css" :rel "stylesheet"}]
+     [:link {:href "/vendors/bootstrap-daterangepicker/daterangepicker.css" :rel "stylesheet"}]
+     [:link {:href "/vendors/font-awesome/css/font-awesome.min.css" :rel "stylesheet"}]
+     [:link {:href "/build/css/custom.min.css" :rel "stylesheet"}]
+     [:link {:href "/vendors/google-code-prettify/bin/prettify.min.css" :rel "stylesheet"}]
+ 
+     [:title "Admin"]]
+    [:body.nav-md
+     [:div.container.body
+      [:div.main_container
+       [:div.col-md-3.left_col
+        [:div.left_col.scroll-view
+         [:div.navbar.nav_title
+          [:a.site_title "Manager import"]]
+         [:div.clearfix]
+         [:div.profile.clearfix
+          [:div.profile_pic [:img.img-circle.profile_img {:src "/production/images/img.jpg"}]]
+          [:div.profile_info
+           [:span "Предприятие"]
+           [:h2 (:business-id @app-db)]]]
+         [:br]
+         (sidebar-menu (:manager @app-db))]]
+       [:div.top_nav
+        [:div.nav_menu
+         [:nav
+          [:div.nav.toggle
+           [:a#menu_toggle [:i.fa.fa-bars]]]
+          [:ul.nav.navbar-nav.navbar-right
+           [:li
+            [:a {:href "/auth/login"} "Логин"]]]]]]
+       [:div.right_col {:role "main" :style "min-height:914px;"}
+        ;; [:div.page-title
+        ;;  [:div.title_left
+        ;;   [:h3 "Страница"]] 
+        ;;  [:div.title_right]]
+        ;; [:div.clearfix]
+        [:div.row body]]]]
+     [:script {:src "/vendors/jquery/dist/jquery.min.js"}]
+     [:script {:src "/vendors/bootstrap/dist/js/bootstrap.js"}]
+     [:script {:src "/vendors/moment/min/moment.min.js"}]
+     [:script {:src "/vendors/bootstrap-daterangepicker/daterangepicker.js"}]
+     [:script {:src "/build/js/custom.js"}]
+     [:script {:src "/custom.js"}]]]))
 
 (defn x-panel [title body]
   [:div.x_panel
