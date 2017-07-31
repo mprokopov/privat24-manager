@@ -12,24 +12,24 @@
 
 (def we (:account (walk/keywordize-keys {"account" {"@name" "АЙ ТI СЕРВIС ПП", "@number" "26002052712918", "customer" {"@crf" "35643866", "bank" {"@code" "300711", "city" "Київ", "#text" "ПЕЧЕРСЬКА Ф.ПАТ КБ\"ПРИВАТБАНК\", М.КИЇВ"}}}})))
 
-(deftest test-amount
-  (is (= 400.0 (get-amount statement))))
+;; (deftest test-amount
+;;   (is (= 400.0 (get-amount statement))))
 
-(deftest test-get-customer-account
-  (is (= customer1-acc (get-customer statement))))
+;; (deftest test-get-customer-account
+;;   (is (= customer1-acc (get-customer statement))))
 
-(deftest test-get-code2
-  (is (= "30525505" (get-code2 statement))))
+;; (deftest test-get-code2
+;;   (is (= "30525505" (get-code2 statement))))
 
-(deftest test-our-account
-  (is (= we (get-our-account statement))))
+;; (deftest test-our-account
+;;   (is (= we (get-our-account statement))))
 
-(deftest test-get-payment-type
-  (is (= :receipt (get-payment-type statement)))
-  (is (= :payment (get-payment-type statement2))))
+;; (deftest test-get-payment-type
+;;   (is (= :receipt (get-payment-type statement)))
+;;   (is (= :payment (get-payment-type statement2))))
 
-(deftest test-get-date
-  (is (= (clj-time.core/date-time 2017 05 10) (get-date statement))))
+;; (deftest test-get-date
+;;   (is (= (clj-time.core/date-time 2017 05 10) (get-date statement))))
 ; преобразовать дату в американский формат
 ; DebitAccount - откуда ушли деньги
 ; "Payer" 
