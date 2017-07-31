@@ -133,34 +133,6 @@
       (wrap-content-type)
       (wrap-not-modified)))
 
-(defrecord Webserver [host port server]
-  component/Lifecycle
-  (start [component]
-    (println "Start web server")
-    (assoc component :server (run-jetty #'handler {:port port :join? false})))
-  (stop [component]
-    (println "Stop web server")
-    (.stop server)
-    (assoc component :server nil)))
-
-(defn system [config-options]
-  (let [{:keys [host port]} config-options]
-    (component/system-map
-     :app (map->Webserver {:host host :port port}))))
-
-(def sys (system {:host "locahost" :port 3000}))
-
-(defn start-dev []
-  (alter-var-root #'sys component/start))
-;; (reset! server (run-jetty #'handler {:port 8080 :join? false})))
-
-(defn stop-dev []
-  (alter-var-root #'sys component/stop))
-  ;; (.stop @server))
-
-(defn restart []
-  (stop-dev)
-  (start-dev))
 
 (def rests-index-resource
   (yada/resource
@@ -186,36 +158,54 @@
    {
     :id :settings/index
     :produces "text/html"
+    :properties {
+                 :exists? true}
+                 
     :methods {:get {:response (template (settings/index app-db))}
               :post {
                      :consumes "application/x-www-form-urlencoded"
                      :parameters {:form {:account String}}
                      :response load-s}}}))
 
-(def routes
+
+(defn root-routes [app-db]
   ["/"
    [
-    ["db"
-     [
-      ["/privat" (yada/yada (get @app-db :privat))]
-      ["/manager" (yada/yada (get-in @app-db [:manager]))]]]
+    ;; ["db"
+    ;;  [
+    ;;   ["/privat" (yada/yada (get @app-db :privat))]
+    ;;   ["/manager" (yada/yada (get-in @app-db [:manager]))]]]
     ["auth/login" (yada/resource {
-                                  :produces "text/hml"
-                                  :methods { :post { :response (login! app-db)}}})]
+                                  :id :auth/login
+                                  :produces "text/html"
+                                  :methods { :post {
+                                                    :response (fn [ctx] (login! app-db))}}})]
     ["rests" rests-index-resource]
+    ["suppliers"
+     [["" (yada/resource {:produces "text/html"
+                          :methods { :get {:response (template (suppliers/index @app-db))}}})]]]
+    ["customers" [[ "" (yada/resource {:produces "text/html"
+                                       :methods { :get { :response (template (customers/index @app-db))}}})]
+                  [ ["/" :uuid] (yada/resource {:produces "text/html"
+                                                :methods {
+                                                          :get {
+                                                                :parameters {:path {:uuid String}}
+                                                                :response (fn [ctx]
+                                                                            (let [{uuid :uuid} (get-in ctx [:parameters :path])]
+                                                                              (template (customers/single uuid @app-db))))}}})]]]
     ["statements" statements-index-resource]
     ["settings" settings-resource]
     ["" (yada.resources.classpath-resource/new-classpath-resource "public/vendor/gentelella")]]])
 
-((:close svr))
+;; ((:close svr))
 
-(def svr
-  (yada/listener
-   routes
-   {:port 3000}))
+;; (def svr
+;;   (yada/listener
+;;    (root-routes app-db)
+;;    {:port 3000}))
 
-(defn stop! []
-  ((:close svr)))
+;; (defn stop! []
+;;   ((:close svr)))
 ;; (def svr
 ;;   (yada/listener
 ;;    ["/"
@@ -227,6 +217,35 @@
 ;;      [true (as-resource nil)]]]
 ;;    {:port 3000}))
 
+
+(defrecord Webserver [host port server]
+  component/Lifecycle
+  (start [component]
+    (println "Start web server")
+    (assoc component :server (yada/listener (root-routes app-db) {:port port})))
+  (stop [component]
+    (println "Stop web server")
+    ((:close server))
+    (assoc component :server nil)))
+
+(defn system [config-options]
+  (let [{:keys [host port]} config-options]
+    (component/system-map
+     :app (map->Webserver {:host host :port port}))))
+
+(def sys (system {:host "locahost" :port 3000}))
+
+(defn start-dev []
+  (alter-var-root #'sys component/start))
+;; (reset! server (run-jetty #'handler {:port 8080 :join? false})))
+
+(defn stop-dev []
+  (alter-var-root #'sys component/stop))
+;; (.stop @server))
+
+(defn restart []
+  (stop-dev)
+  (start-dev))
 
 (defn -main [& args]
   (settings/load-account! (first args) app-db)

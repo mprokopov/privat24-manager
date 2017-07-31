@@ -68,4 +68,3 @@
       [:p "Updated"
        (privat-manager.utils/map-to-html-list update-map)]
       [:p "error occured"])))
-      
