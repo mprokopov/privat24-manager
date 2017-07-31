@@ -8,7 +8,7 @@
             [privat-manager.settings :as settings]
             [privat-manager.config :as config]
             [privat-manager.template :refer [x-panel sidebar-menu] :as templ]
-            [compojure.core :refer [defroutes GET POST context]]
+            [compojure.core :refer [defroutes GET POST context] :as compojure]
             [compojure.coercions :refer [as-int as-uuid]]
             [clj-time.coerce :as time.coerce]
             [ring.middleware.resource :refer [wrap-resource]]
@@ -84,72 +84,63 @@
     f
     (ring.util.response/redirect to))) 
 
-(defroutes app 
-  (GET "/" [] (with-redirect identity "/settings")) 
-  (context "/customers" []
-           (GET "/" [] (template (customers/index @app-db)))
-           (POST "/" [] (with-redirect (customers/fetch! app-db) "/customers"))
-           (GET "/:uuid" [uuid] (single-customer uuid app-db)) 
-           (POST "/:uuid" [uuid edrpou] (update-customer! uuid {:edrpou edrpou} app-db))) 
-  (context "/suppliers" []
-           (GET "/" [] (template (suppliers/index @app-db)))
-           (GET "/:uuid" [uuid] (single-supplier uuid app-db)) 
-           (POST "/:uuid" [uuid edrpou] (update-supplier! uuid {:edrpou edrpou} app-db)) 
-           (POST "/" [] (with-redirect (suppliers/fetch! app-db) "/suppliers")))
-  (context "/rests" []
-           (GET "/" [] (template [:h1 "Остатки"] (rests/index @app-db)))
-           (POST "/" [stdate endate] (with-redirect (rests/fetch! app-db stdate endate) "/rests")))
-  (context "/settings" []
-           (GET "/" [] (settings-index app-db))
-           (POST "/" [account] (load-account! account app-db))
-           (GET "/load" [data] (with-redirect (config/load-cached-db (keyword data) app-db) "/settings"))
-           (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/settings")))
-  (context "/auth" []
-           (POST "/login" [] (login! app-db))
-           (GET "/login/otp" [id] (template (privat.auth/send-otp2! id app-db)))
-           (POST "/login/otp" [otp] (with-redirect (privat.auth/check-otp2! otp app-db)))
-           (GET "/logout" [] (with-redirect (privat.auth/logout! app-db) "/settings")))
-  ;; (context "/api" [])
-  (context "/statements" []
-           (GET "/" [] (statements-index app-db))
-           (POST "/" [stdate endate] (fetch-statements! app-db stdate endate))
-           (POST "/:id" [id :<< as-int] (post-statement! id app-db))
-           (GET "/:id" [id :<< as-int] (single-statement id))))
+(defn web-handler [app-db]
+  (compojure/routes
+   (GET "/" [] (with-redirect identity "/settings")) 
+   (context "/rests" []
+        (GET "/" [] (template [:h1 "Остатки"] (rests/index @app-db)))
+        (POST "/" [stdate endate] (with-redirect (rests/fetch! app-db stdate endate) "/rests")))
+   (context "/customers" []
+        (GET "/" [] (template (customers/index @app-db)))
+        (POST "/" [] (with-redirect (customers/fetch! app-db) "/customers"))
+        (GET "/:uuid" [uuid] (single-customer uuid app-db)) 
+        (POST "/:uuid" [uuid edrpou] (update-customer! uuid {:edrpou edrpou} app-db))) 
+   (context "/suppliers" []
+        (GET "/" [] (template (suppliers/index @app-db)))
+        (GET "/:uuid" [uuid] (single-supplier uuid app-db)) 
+        (POST "/:uuid" [uuid edrpou] (update-supplier! uuid {:edrpou edrpou} app-db)) 
+        (POST "/" [] (with-redirect (suppliers/fetch! app-db) "/suppliers")))
+   (context "/settings" []
+        (GET "/" [] (settings-index app-db))
+        (POST "/" [account] (load-account! account app-db))
+        (GET "/load" [data] (with-redirect (config/load-cached-db (keyword data) app-db) "/settings"))
+        (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/settings")))
+   (context "/statements" []
+        (GET "/" [] (statements-index app-db))
+        (POST "/" [stdate endate] (fetch-statements! app-db stdate endate))
+        (POST "/:id" [id :<< as-int] (post-statement! id app-db))
+        (GET "/:id" [id :<< as-int] (single-statement id)))))
 
-
-(def handler
-  (-> app
-      (wrap-defaults (update-in site-defaults [:security] dissoc :anti-forgery))
-      (wrap-resource "public")
-      (wrap-resource "public/vendor/gentelella")
-      (wrap-params)
-      (wrap-content-type)
-      (wrap-not-modified)))
-
-(defrecord Webserver [host port server]
+(defrecord Webserver [app-atom host port server]
   component/Lifecycle
   (start [component]
     (println "Start web server")
-    (assoc component :server (run-jetty #'handler {:port port :join? false})))
+    (assoc component :server
+           (run-jetty (-> (web-handler app-atom)
+                          (wrap-defaults (update-in site-defaults [:security] dissoc :anti-forgery))
+                          (wrap-params)
+                          (wrap-content-type)
+                          (wrap-resource "public")
+                          (wrap-resource "public/vendor/gentelella")
+                          (wrap-not-modified))
+                      {:port port :join? false})))
   (stop [component]
     (println "Stop web server")
     (.stop server)
     (assoc component :server nil)))
 
 (defn system [config-options]
-  (let [{:keys [host port]} config-options]
+  (let [{:keys [host port app-atom]} config-options]
     (component/system-map
-     :app (map->Webserver {:host host :port port}))))
+     :app (map->Webserver {:host host :port port :app-atom app-atom}))))
 
-(def sys (system {:host "locahost" :port 3000}))
+(def sys (system {:host "locahost" :port 3000 :app-atom app-db}))
 
 (defn start-dev []
   (alter-var-root #'sys component/start))
-;; (reset! server (run-jetty #'handler {:port 8080 :join? false})))
 
 (defn stop-dev []
   (alter-var-root #'sys component/stop))
-  ;; (.stop @server))
 
 (defn restart []
   (stop-dev)
