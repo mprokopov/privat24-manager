@@ -12,6 +12,7 @@
                  [ring/ring-jetty-adapter "1.6.1"]
                  [ring/ring-defaults "0.3.0"]
                  [com.stuartsierra/component "0.3.2"]]
+
   :main ^:skip-aot privat-manager.core
   :target-path "target/%s"
   :ring {:handler privat-manager.core/handler}
@@ -19,4 +20,8 @@
             ;[lein-figwheel "0.5.8"]
             [lein-bower "0.5.1"]
             [lein-ring "0.9.7"]]
-  :profiles {:uberjar {:aot :all}})
+  :profiles {:uberjar {:aot :all}
+             :dev {:dependencies [[org.clojure/tools.namespace "0.2.11"]
+                                  [com.stuartsierra/component.repl "0.2.0"]]
+                   :source-paths ["dev"]}})
+  

@@ -17,7 +17,7 @@
             ;; [ring.middleware.not-modified :refer [wrap-not-modified]]
             ;; [ring.middleware.content-type :refer [wrap-content-type]]
             ;; [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
-            [ring.adapter.jetty :refer [run-jetty]]
+            ;; [ring.adapter.jetty :refer [run-jetty]]
             [com.stuartsierra.component :as component]
             [clojure.string :as str])
   (:gen-class))
@@ -89,12 +89,12 @@
   (compojure/routes
    (GET "/" [] (with-redirect identity "/settings")) 
    (context "/rests" []
-        (GET "/" [] (template [:h1 "Остатки"] (rests/index @app-db)))
+        (GET "/" [] (templ/template app-db [:h1 "Остатки"] (rests/index @app-db)))
         (POST "/" [stdate endate] (with-redirect (rests/fetch! app-db stdate endate) "/rests")))
    (context "/customers" []
-        (GET "/" [] (template (customers/index @app-db)))
+        (GET "/" [] (templ/template app-db (customers/index @app-db)))
         (POST "/" [] (with-redirect (customers/fetch! app-db) "/customers"))
-        (GET "/:uuid" [uuid] (single-customer uuid app-db)) 
+        (GET "/:uuid" [uuid] (templ/template app-db (customers/single uuid @app-db))) 
         (POST "/:uuid" [uuid edrpou] (update-customer! uuid {:edrpou edrpou} app-db))) 
    (context "/suppliers" []
         (GET "/" [] (template (suppliers/index @app-db)))
@@ -106,6 +106,11 @@
         (POST "/" [account] (load-account! account app-db))
         (GET "/load" [data] (with-redirect (config/load-cached-db (keyword data) app-db) "/settings"))
         (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/settings")))
+   (context "/auth" []
+        (POST "/login" [] (login! app-db))
+        (GET "/login/otp" [id] (templ/template app-db (privat.auth/send-otp2! id app-db)))
+        (POST "/login/otp" [otp] (with-redirect (privat.auth/check-otp2! otp app-db)))
+        (GET "/logout" [] (with-redirect (privat.auth/logout! app-db) "/settings")))
    (context "/statements" []
         (GET "/" [] (statements-index app-db))
         (POST "/" [stdate endate] (fetch-statements! app-db stdate endate))
@@ -113,18 +118,20 @@
         (GET "/:id" [id :<< as-int] (single-statement id)))))
 
 
-(def sys (server/system {:host "locahost" :port 3000 :app-atom app-db :routes (web-handler app-db)}))
+;; (def sys (server/system {:host "locahost" :port 3000 :app-atom app-db :routes (web-handler app-db)}))
 
-(defn start-dev []
-  (alter-var-root #'sys component/start))
+;; (defn start-dev []
+;;   (alter-var-root #'sys component/start))
 
-(defn stop-dev []
-  (alter-var-root #'sys component/stop))
+;; (defn stop-dev []
+;;   (alter-var-root #'sys component/stop))
 
-(defn restart []
-  (stop-dev)
-  (start-dev))
+;; (defn restart []
+;;   (stop-dev)
+;;   (start-dev))
 
 (defn -main [& args]
   (settings/load-account! (first args) app-db)
-  (start-dev))
+  (component/start
+    (server/system {:host "0.0.0.0" :port 3000 :app-atom app-db :routes (web-handler app-db)})))
+  ;(start-dev))
