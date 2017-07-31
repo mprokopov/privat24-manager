@@ -154,9 +154,6 @@
     :credit (parse-account (get-in statement ["credit"]))})) 
 
 ;; (def transform->manager2 (comp assoc-transaction-type parse-statement))
-(defn privat->manager [app-db] (comp (map parse-statement)
-                                  (map assoc-transaction-type)
-                                  (map #(make-manager-statement % app-db))))
 
 (defn my-format [fmt n & [locale]]
   (let [locale (if locale (Locale. locale)
@@ -334,3 +331,7 @@
 (defn format-floats [m]
   (let [f (fn [acc mkey mval] (assoc acc mkey (if (float? mval) (format "%.2f" mval) mval)))]
     (reduce-kv f {} m)))
+
+(defn privat->manager [app-db] (comp (map parse-statement)
+                                  (map assoc-transaction-type)
+                                  (map #(make-manager-statement % app-db))))
