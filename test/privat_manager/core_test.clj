@@ -12,21 +12,9 @@
 
 (def we (:account (walk/keywordize-keys {"account" {"@name" "АЙ ТI СЕРВIС ПП", "@number" "26002052712918", "customer" {"@crf" "35643866", "bank" {"@code" "300711", "city" "Київ", "#text" "ПЕЧЕРСЬКА Ф.ПАТ КБ\"ПРИВАТБАНК\", М.КИЇВ"}}}})))
 
-;; (deftest test-amount
-;;   (is (= 400.0 (get-amount statement))))
-
-;; (deftest test-get-customer-account
-;;   (is (= customer1-acc (get-customer statement))))
 
 ;; (deftest test-get-code2
 ;;   (is (= "30525505" (get-code2 statement))))
-
-;; (deftest test-our-account
-;;   (is (= we (get-our-account statement))))
-
-;; (deftest test-get-payment-type
-;;   (is (= :receipt (get-payment-type statement)))
-;;   (is (= :payment (get-payment-type statement2))))
 
 ;; (deftest test-get-date
 ;;   (is (= (clj-time.core/date-time 2017 05 10) (get-date statement))))
@@ -81,16 +69,3 @@
 ;;  "Payer": "РњР°Р»С‚СЋСЂРѕРї",
 ;;  "BankClearDate": "2016-04-05",
 ;;  "BankClearStatus": "Cleared"}
-
-
-;; (let [{id :id roles :roles} (get-token creds)]
-;;   (client/get "https://link.privatbank.ua/api/p24b/statements"
-;;               {:headers {"Authorization" id}
-;;                          ;"ROLE_P24_BUSINESS" (first roles)}
-;;                :content-type :json
-;;                :accept :json
-;;                :debug true
-;;                :query-params {;"acc" acc2
-;;                               ;"showInf" true
-;;                               "stdate" "01.05.2017"
-;;                               "endate" "25.05.2017"}}))
