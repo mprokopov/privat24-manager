@@ -54,6 +54,7 @@
 
 (defn index [{{{statements :mstatements} :db} :manager :as app-db}]
        [:div
+        [:h1 "Выписки"]
         (if (privat.auth/authorized? app-db)
           (date-form)
           [:div.alert.alert-danger "необходима авторизация для загрузки выписок"])

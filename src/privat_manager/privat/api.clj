@@ -23,9 +23,10 @@
                          "Content-type" "application/json"}}))
 
 (defn get-body [m]
-  (-> (get2 m)
-      (get :body)
-      (cheshire/parse-string true)))
+  (let [{status :status body :body} (get2 m)]
+    (case status
+      200 (cheshire/parse-string body true)
+      {:error status :message body})))
 
 (defn get-statements [session stdate endate]
   (get-body {:uri "p24b/statements"

@@ -1,17 +1,3 @@
-// $('#startDate').daterangepicker({
-//     singleDatePicker: true,
-//     locale: {
-//         format: 'DD.MM.YYYY'
-//     }
-// });
-
-// $('#endDate').daterangepicker({
-//     singleDatePicker: true,
-//     locale: {
-//         format: 'DD.MM.YYYY'
-//     }
-// });
-
 $('#testDate').daterangepicker({
     ranges: {
         // 'Сегодня': [moment(), moment()],
@@ -55,6 +41,7 @@ $('#testDate').daterangepicker({
 
     },
     "alwaysShowCalendars": true,
+    "maxDate": moment(),
 }, function (start, end, label) {
     $('input[name="stdate"]').val(start.format('DD.MM.YYYY'));
     $('input[name="endate"]').val(end.format('DD.MM.YYYY'));

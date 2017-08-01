@@ -12,12 +12,6 @@
             [compojure.core :refer [defroutes GET POST context] :as compojure]
             [compojure.coercions :refer [as-int as-uuid]]
             [clj-time.coerce :as time.coerce]
-            ;; [ring.middleware.resource :refer [wrap-resource]]
-            ;; [ring.middleware.params :refer [wrap-params]]
-            ;; [ring.middleware.not-modified :refer [wrap-not-modified]]
-            ;; [ring.middleware.content-type :refer [wrap-content-type]]
-            ;; [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
-            ;; [ring.adapter.jetty :refer [run-jetty]]
             [com.stuartsierra.component :as component]
             [clojure.string :as str])
   (:gen-class))
@@ -39,36 +33,36 @@
     "/settings"))
 
 
-(defn settings-index [app-db]
-  (template (settings/index app-db)))
+;; (defn settings-index [app-db]
+;;   (template (settings/index app-db)))
 
 
-(defn fetch-statements! [app-db stdate endate]
-  (with-redirect
-    (mstatement/fetch! app-db stdate endate)
-    "/statements"))
+;; (defn fetch-statements! [app-db stdate endate]
+;;   (with-redirect
+;;     (mstatement/fetch! app-db stdate endate)
+;;     "/statements"))
 
 
-(defn statements-index [app-db]
-  (template [:h1 "Выписки"] (mstatement/index @app-db)))
+;; (defn statements-index [app-db]
+;;   (template [:h1 "Выписки"] (mstatement/index @app-db)))
 
-(defn single-statement [index]
-  (template (mstatement/single index @app-db)))
+;; (defn single-statement [index]
+;;   (template (mstatement/single index @app-db)))
 
-(defn post-statement! [index app-db]
-  (template (mstatement/post! index @app-db)))
+;; (defn post-statement! [index app-db]
+;;   (template (mstatement/post! index @app-db)))
 
-(defn single-customer [uuid app-db]
-   (template (customers/single uuid @app-db)))
+;; (defn single-customer [uuid app-db]
+;;    (template (customers/single uuid @app-db)))
 
-(defn single-supplier [uuid app-db]
-  (template (suppliers/single uuid @app-db)))
+;; (defn single-supplier [uuid app-db]
+;;   (template (suppliers/single uuid @app-db)))
 
-(defn update-customer! [uuid m app-db]
-  (template (customers/update! uuid m app-db)))
+;; (defn update-customer! [uuid m app-db]
+;;   (template (customers/update! uuid m app-db)))
 
-(defn update-supplier! [uuid m app-db]
-  (template (suppliers/update! uuid m app-db)))
+;; (defn update-supplier! [uuid m app-db]
+;;   (template (suppliers/update! uuid m app-db)))
 
 (defn login! [app-db]
  (with-redirect
@@ -95,14 +89,14 @@
         (GET "/" [] (templ/template app-db (customers/index @app-db)))
         (POST "/" [] (with-redirect (customers/fetch! app-db) "/customers"))
         (GET "/:uuid" [uuid] (templ/template app-db (customers/single uuid @app-db))) 
-        (POST "/:uuid" [uuid edrpou] (update-customer! uuid {:edrpou edrpou} app-db))) 
+        (POST "/:uuid" [uuid edrpou] (templ/template app-db (customers/update! uuid {:edrpou edrpou} app-db)))) 
    (context "/suppliers" []
-        (GET "/" [] (template (suppliers/index @app-db)))
-        (GET "/:uuid" [uuid] (single-supplier uuid app-db)) 
-        (POST "/:uuid" [uuid edrpou] (update-supplier! uuid {:edrpou edrpou} app-db)) 
+        (GET "/" [] (templ/template app-db (suppliers/index @app-db)))
+        (GET "/:uuid" [uuid] (templ/template app-db (suppliers/single uuid app-db))) 
+        (POST "/:uuid" [uuid edrpou] (templ/template app-db (suppliers/update! uuid {:edrpou edrpou} app-db))) 
         (POST "/" [] (with-redirect (suppliers/fetch! app-db) "/suppliers")))
    (context "/settings" []
-        (GET "/" [] (settings-index app-db))
+        (GET "/" [] (templ/template app-db (settings/index app-db)))
         (POST "/" [account] (load-account! account app-db))
         (GET "/load" [data] (with-redirect (config/load-cached-db (keyword data) app-db) "/settings"))
         (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/settings")))
@@ -112,10 +106,10 @@
         (POST "/login/otp" [otp] (with-redirect (privat.auth/check-otp2! otp app-db)))
         (GET "/logout" [] (with-redirect (privat.auth/logout! app-db) "/settings")))
    (context "/statements" []
-        (GET "/" [] (statements-index app-db))
-        (POST "/" [stdate endate] (fetch-statements! app-db stdate endate))
-        (POST "/:id" [id :<< as-int] (post-statement! id app-db))
-        (GET "/:id" [id :<< as-int] (single-statement id)))))
+        (GET "/" [] (templ/template app-db (mstatement/index @app-db)))
+        (POST "/" [stdate endate] (with-redirect (mstatement/fetch! app-db stdate endate) "/statements"))
+        (POST "/:id" [id :<< as-int] (templ/template app-db (mstatement/post! id @app-db)))
+        (GET "/:id" [id :<< as-int] (templ/template app-db (mstatement/single id @app-db))))))
 
 
 ;; (def sys (server/system {:host "locahost" :port 3000 :app-atom app-db :routes (web-handler app-db)}))
