@@ -11,12 +11,11 @@
   component/Lifecycle
   (start [component]
     (assoc component :handler (-> routes
-                                  (wrap-defaults (update-in site-defaults [:security] dissoc :anti-forgery))
                                   (wrap-params)
-                                  (wrap-content-type)
-                                  (wrap-resource "public")
-                                  (wrap-resource "public/vendor/gentelella")
-                                  (wrap-not-modified))))
+                                  (wrap-defaults
+                                   (-> site-defaults
+                                       (assoc-in [:static :resources] ["public" "public/vendor/gentelella"])
+                                       (update-in [:security] dissoc :anti-forgery))))))
   (stop [component]
     (dissoc component :handler)))
 
@@ -36,7 +35,7 @@
 (defn system [config-options]
   (let [{:keys [host port app-atom routes]} config-options]
     (component/system-map
-     :routes-handler (map->Handler {:routes routes})
+     :routes-handler (->Handler routes) 
      :app (component/using
            (map->Webserver {:host host
                             :port port
