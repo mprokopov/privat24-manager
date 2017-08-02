@@ -14,7 +14,7 @@
                  [ring/ring-defaults "0.3.1"]
                  [com.stuartsierra/component "0.3.2"]]
 
-  :main ^:skip-aot privat-manager.core
+  ; :main ^:skip-aot privat-manager.core
   :target-path "target/%s"
   :ring {:handler privat-manager.core/handler}
   :plugins [
@@ -24,7 +24,7 @@
   :profiles {:uberjar {:aot :all}
              :debug-repl {:resource-paths [" /Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/lib/"]
                           :dependencies [[debug-middleware #=(eval (System/getenv "DEBUG_MIDDLEWARE_VERSION"))]]
-                          :repl-options {:nrepl-middleware [debug-middleware.core/debug-middleware]}}
+                          :repl-options {:nrepl-middleware ['debug-middleware.core/debug-middleware]}}
              :dev {:dependencies [[org.clojure/tools.namespace "0.2.11"]
                                   [com.stuartsierra/component.repl "0.2.0"]]
                    :source-paths ["dev"]}})

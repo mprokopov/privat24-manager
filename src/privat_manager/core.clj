@@ -8,8 +8,9 @@
             [privat-manager.settings :as settings]
             [privat-manager.config :as config]
             [privat-manager.server :as server]
-            [privat-manager.template :refer [x-panel sidebar-menu] :as templ]
-            [compojure.core :refer [defroutes GET POST context] :as compojure]
+            [privat-manager.auth :as auth]
+            [privat-manager.template :as templ]
+            [compojure.core :refer [GET POST context] :as compojure]
             [compojure.coercions :refer [as-int as-uuid]]
             [clj-time.coerce :as time.coerce]
             [com.stuartsierra.component :as component]
@@ -23,56 +24,10 @@
                    :manager nil}))
 
 
-(defn template [& body]
-  (templ/template app-db body))
-
-
 (defn load-account! [account app-db]
   (with-redirect
     (settings/load-account! account app-db)
     "/settings"))
-
-
-;; (defn settings-index [app-db]
-;;   (template (settings/index app-db)))
-
-
-;; (defn fetch-statements! [app-db stdate endate]
-;;   (with-redirect
-;;     (mstatement/fetch! app-db stdate endate)
-;;     "/statements"))
-
-
-;; (defn statements-index [app-db]
-;;   (template [:h1 "Выписки"] (mstatement/index @app-db)))
-
-;; (defn single-statement [index]
-;;   (template (mstatement/single index @app-db)))
-
-;; (defn post-statement! [index app-db]
-;;   (template (mstatement/post! index @app-db)))
-
-;; (defn single-customer [uuid app-db]
-;;    (template (customers/single uuid @app-db)))
-
-;; (defn single-supplier [uuid app-db]
-;;   (template (suppliers/single uuid @app-db)))
-
-;; (defn update-customer! [uuid m app-db]
-;;   (template (customers/update! uuid m app-db)))
-
-;; (defn update-supplier! [uuid m app-db]
-;;   (template (suppliers/update! uuid m app-db)))
-
-(defn login! [app-db]
- (with-redirect
-  (do
-    (privat.auth/auth app-db)
-    (-> (privat.auth/auth-p24 app-db)
-        (get-in [:privat :session])
-        (update :expires #(time.coerce/from-long (* % 1000)))
-        utils/map-to-html-list))
-  "/settings"))
 
 (defn with-redirect [f to]
   (do
@@ -81,7 +36,7 @@
 
 (defn web-handler [app-db]
   (compojure/routes
-   (GET "/" [] (with-redirect identity "/settings")) 
+   (GET "/" [] (with-redirect identity "/settings"))
    (context "/rests" []
         (GET "/" [] (templ/template app-db [:h1 "Остатки"] (rests/index @app-db)))
         (POST "/" [stdate endate] (with-redirect (rests/fetch! app-db stdate endate) "/rests")))
@@ -101,7 +56,7 @@
         (GET "/load" [data] (with-redirect (config/load-cached-db (keyword data) app-db) "/settings"))
         (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/settings")))
    (context "/auth" []
-        (POST "/login" [] (login! app-db))
+        (POST "/login" [] (auth/login! app-db))
         (GET "/login/otp" [id] (templ/template app-db (privat.auth/send-otp2! id app-db)))
         (POST "/login/otp" [otp] (with-redirect (privat.auth/check-otp2! otp app-db)))
         (GET "/logout" [] (with-redirect (privat.auth/logout! app-db) "/settings")))
@@ -111,21 +66,8 @@
         (POST "/:id" [id :<< as-int] (templ/template app-db (mstatement/post! id @app-db)))
         (GET "/:id" [id :<< as-int] (templ/template app-db (mstatement/single id @app-db))))))
 
-
-;; (def sys (server/system {:host "locahost" :port 3000 :app-atom app-db :routes (web-handler app-db)}))
-
-;; (defn start-dev []
-;;   (alter-var-root #'sys component/start))
-
-;; (defn stop-dev []
-;;   (alter-var-root #'sys component/stop))
-
-;; (defn restart []
-;;   (stop-dev)
-;;   (start-dev))
-
 (defn -main [& args]
   (settings/load-account! (first args) app-db)
   (component/start
     (server/system {:host "0.0.0.0" :port 3000 :app-atom app-db :routes (web-handler app-db)})))
-  ;(start-dev))
+

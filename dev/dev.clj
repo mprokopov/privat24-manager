@@ -8,8 +8,8 @@
 
 (def app-db (atom nil))
 
-;; (clojure.tools.namespace.repl/set-refresh-dirs "dev" "src" "test")
-(clojure.tools.namespace.repl/set-refresh-dirs "src" "test")
+(clojure.tools.namespace.repl/set-refresh-dirs "dev" "src" "test")
+;; (clojure.tools.namespace.repl/set-refresh-dirs "src" "test")
 
 (set-init (fn [_] (server/system {:host "localhost" :port 3000 :app-atom app-db :routes (web-handler app-db)})))
 
