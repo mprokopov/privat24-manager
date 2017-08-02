@@ -98,6 +98,8 @@
     (swap! settings assoc-in [:manager :db k] db2)
     "ok"))
 
+
+;; TODO improve with connection-pool https://github.com/dakrone/clj-http#persistent-connections
 (defn populate-db!
   "fetch item for every DB uuid and update entry"
   [k app-db]
