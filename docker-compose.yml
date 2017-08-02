@@ -3,5 +3,7 @@ services:
   srv:
     build: .
     image: registry.it-expert.com.ua/nexus/privat-manager
+    volumes:
+      - ./resources/settings:/app/resources/settings
     ports:
       - 3000:3000
