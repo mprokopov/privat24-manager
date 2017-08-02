@@ -1,4 +1,4 @@
-(defproject privat-manager "1.0.1"
+(defproject privat-manager "1.1.1"
   :description "Import bank statements from Privat24 to Manager.io API"
   :url "http://github.com/mprokopov/privat24-manager"
   :license {:name "Eclipse Public License"
@@ -14,7 +14,7 @@
                  [ring/ring-defaults "0.3.1"]
                  [com.stuartsierra/component "0.3.2"]]
 
-  ; :main ^:skip-aot privat-manager.core
+  :main ^:skip-aot privat-manager.core
   :target-path "target/%s"
   :ring {:handler privat-manager.core/handler}
   :plugins [
@@ -27,4 +27,5 @@
                           :repl-options {:nrepl-middleware ['debug-middleware.core/debug-middleware]}}
              :dev {:dependencies [[org.clojure/tools.namespace "0.2.11"]
                                   [com.stuartsierra/component.repl "0.2.0"]]
+                   :main user
                    :source-paths ["dev"]}})

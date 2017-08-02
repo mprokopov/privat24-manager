@@ -32,7 +32,8 @@
 (defn with-redirect [f to]
   (do
     f
-    (ring.util.response/redirect to))) 
+    (cond-> (ring.util.response/redirect to)
+      (:flash f) (assoc :flash (:flash f))))) 
 
 (defn web-handler [app-db]
   (compojure/routes
@@ -56,12 +57,12 @@
         (GET "/load" [data] (with-redirect (config/load-cached-db (keyword data) app-db) "/settings"))
         (GET "/save" [data] (with-redirect (config/save-cached-db (keyword data) app-db) "/settings")))
    (context "/auth" []
-        (POST "/login" [] (auth/login! app-db))
+        (POST "/login" [] (with-redirect (auth/login! app-db) "/settings"))
         (GET "/login/otp" [id] (templ/template app-db (privat.auth/send-otp2! id app-db)))
         (POST "/login/otp" [otp] (with-redirect (privat.auth/check-otp2! otp app-db)))
         (GET "/logout" [] (with-redirect (privat.auth/logout! app-db) "/settings")))
    (context "/statements" []
-        (GET "/" [] (templ/template app-db (mstatement/index @app-db)))
+        (GET "/" {flash :flash} (templ/template app-db flash (mstatement/index @app-db)))
         (POST "/" [stdate endate] (with-redirect (mstatement/fetch! app-db stdate endate) "/statements"))
         (POST "/:id" [id :<< as-int] (templ/template app-db (mstatement/post! id @app-db)))
         (GET "/:id" [id :<< as-int] (templ/template app-db (mstatement/single id @app-db))))))

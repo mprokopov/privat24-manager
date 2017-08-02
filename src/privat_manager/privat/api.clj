@@ -8,7 +8,8 @@
   (client/post (str api uri)
                {:content-type :json
                 :accept :json
-                :debug true
+                :throw-exceptions false
+                ;; :debug true
                 :headers (when headers headers)
                 :body (when body (cheshire/generate-string body))}))
 
@@ -16,6 +17,7 @@
   (client/get (str api uri)
               {:content-type :json
                :accept :json
+               :throw-exceptions false
                ;; :debug true
                ;; :as :json
                :query-params query-params
@@ -34,7 +36,7 @@
              :query-params {"acc" (:bank-account-number session)
                             "showInf" true
                             "stdate" stdate     ;"01.05.2017"
-                            "endate" endate}})) ;"10.05.2017"}}))
+                            "endate" endate}})) ;"10.05.2017"
 
 (defn get-rests [session stdate endate]
   (get-body {:uri "p24b/rests"

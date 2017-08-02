@@ -15,6 +15,7 @@
                                   (wrap-defaults
                                    (-> site-defaults
                                        (assoc-in [:static :resources] ["public" "public/vendor/gentelella"])
+                                       (assoc-in [:sessin :flash] true)
                                        (update-in [:security] dissoc :anti-forgery))))))
   (stop [component]
     (dissoc component :handler)))

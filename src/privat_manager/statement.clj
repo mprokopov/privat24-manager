@@ -99,9 +99,11 @@
 
 (defn fetch! [app-db stdate endate]
   (let [statements (privat.api/get-statements (:privat @app-db) stdate endate)]
-    (swap! app-db assoc-in [:manager :db :mstatements] (->> statements
-                                                        (transduce (privat.util/privat->manager @app-db) conj)
-                                                        (sort-by :date)))))
+    (if (:error statements)
+      (assoc statements :flash (:message statements))
+      (swap! app-db assoc-in [:manager :db :mstatements] (->> statements
+                                                          (transduce (privat.util/privat->manager @app-db) conj)
+                                                          (sort-by :date))))))
 ;; TODO
 ;; (defn fetch2! [app-db stdate endate]
 ;;   (do
