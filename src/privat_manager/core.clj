@@ -59,7 +59,7 @@
    (context "/auth" []
         (POST "/login" [] (with-redirect (auth/login! app-db) "/settings"))
         (GET "/login/otp" [id] (templ/template app-db (privat.auth/send-otp2! id app-db)))
-        (POST "/login/otp" [otp] (with-redirect (privat.auth/check-otp2! otp app-db)))
+        (POST "/login/otp" [otp] (with-redirect (privat.auth/check-otp2! otp app-db) "/settings"))
         (GET "/logout" [] (with-redirect (privat.auth/logout! app-db) "/settings")))
    (context "/statements" []
         (GET "/" {flash :flash} (templ/template app-db flash (mstatement/index @app-db)))

@@ -36,7 +36,7 @@
        (map link otp-persons)]]))
 
 (defn check-otp-form [app-db]
-  [:form.form-horizontal {:method :post}
+  [:form.form-horizontal {:action "/auth/login/otp" :method :post}
    [:div.form-group
     [:label.control-label "OTP"
       [:input {:type :text :name :otp}]]
