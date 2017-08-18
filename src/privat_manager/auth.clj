@@ -3,7 +3,7 @@
             [privat-manager.utils :as utils]
             [clj-time.coerce :as time.coerce]))
 
-
+;; TODO: отрабатывать ошибки 500 от сервера
 (defn login! [app-db]
   (do
     (privat.auth/auth app-db)

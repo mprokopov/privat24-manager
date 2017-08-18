@@ -14,11 +14,12 @@
         {body :body status :status} (api/post {:uri "auth/createSession"
                                                :body {"clientId" app-id
                                                       "clientSecret" app-secret}})] 
-    (when (= status 200)
+    (if (= status 200)
       (let [{id :id roles :roles expires :expiresIn} (cheshire/parse-string body true)]
         (swap! app-db assoc-in [:privat :session] {:id id
                                                    :roles roles
-                                                   :expires expires})))))
+                                                   :expires expires}))
+      {:message body})))
 
 
 (defn auth-p24

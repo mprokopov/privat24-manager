@@ -9,6 +9,7 @@
    [clj-time.format :as time.format])
   (:import java.util.Locale))
 
+;; TODO: давать возможность выбрать тип платежа прямо из интерфейса
 
 (defn paging [id statements]
   (let [has-prev? (> id 0)
