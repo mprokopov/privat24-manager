@@ -1,43 +1,179 @@
 (ns privat-manager.server
   (:require [com.stuartsierra.component :as component]
-            [ring.middleware.resource :refer [wrap-resource]]
-            [ring.middleware.params :refer [wrap-params]]
-            [ring.middleware.not-modified :refer [wrap-not-modified]]
-            [ring.middleware.content-type :refer [wrap-content-type]]
-            [ring.middleware.defaults :refer [wrap-defaults site-defaults]]
-            [ring.adapter.jetty :refer [run-jetty]]))
+            [io.pedestal.http :as http]
+            [io.pedestal.http.body-params :as http.body]
+            [privat-manager.settings :as settings]
+            [privat-manager.rests :as rests]
+            [privat-manager.suppliers :as suppliers]
+            [privat-manager.customers :as customers]
+            [privat-manager.template :as template]
+            [privat-manager.auth :as auth]
+            [privat-manager.statement :as statements]
+            [ring.util.response :as response]
+            [io.pedestal.http.route :as route]))
 
-(defrecord Handler [routes]
+(defonce app-db (atom {:business-id ""
+                       :privat nil
+                       :manager nil}))
+
+(def render-result
+  {:name :render-result
+   :leave (fn [context]
+            (let [result (get context :result)
+                  redirect (get context :redirect)]
+              (if redirect
+                (assoc context :response (response/redirect redirect 301))
+                (assoc context :response (response/content-type (response/response result) "text/html")))))})
+
+(def wrap-template
+  {:name :template
+   :leave (fn [context]
+            (let [db (get context :db)]
+              (update context :result #(template/template db %))))})
+
+(def db
+  {:name :db
+   :enter (fn [context]
+            (assoc context :db app-db))})
+
+(def settings
+  {:name :settings-index
+   :leave (fn [context]
+            (let [db (get context :db)]
+              (assoc context :result (settings/index db))))})
+
+
+(def set-account
+  {:name :load-settings
+   :enter (fn [context]
+            (let [form (get-in context [:request :form-params] {:account "super-truper"})] 
+              (assoc context
+                      :account (:account form))))
+   :leave (fn [context]
+            (let [account (get context :account)
+                  db (get context :db)]
+              (assoc context
+                      :result (settings/load-account! account db)
+                      :redirect (route/url-for :settings-index))))})
+
+(def privat-auth-login
+  {:name :login
+   :enter (fn [context]
+            (let [db (get context :db)]
+              (assoc :result (auth/login! db)
+                     :redirect (route/url-for :settings-index))))})
+
+(def debug
+  {:name :debugger
+   :enter (fn [context]
+            (do
+              (println context)
+              context))
+   :leave (fn [context]
+            (do
+              (println context)
+              context))})
+
+(def statements
+  {:name :statements-index
+   :enter (fn [context]
+            (let [db (:db context)]
+              (assoc context :result (statements/index @db))))})
+
+(def suppliers
+  {:name :suppliers-index
+   :enter (fn [context]
+            (let [db (:db context)]
+              (assoc context :result (suppliers/index @db))))})
+
+(def customers
+  {:name :customers-index
+   :enter (fn [context]
+            (let [db (:db context)]
+              (assoc context :result (customers/index @db))))})
+
+(def rests
+  {:name :rests-index
+   :enter (fn [context]
+            (let [db (:db context)]
+              (assoc context :result (rests/index @db))))})
+
+(def rests-load
+  {:name :rests-load
+   :enter (fn [context]
+            (let [{:keys [stdate endate]} (get-in context [:request :form-params] {:stdate "1.08.2017" :endate "15.08.2017"})]
+              (assoc context
+                     :start-date stdate
+                     :end-date endate)))
+   :leave (fn [context]
+            (let [{:keys [start-date end-date db]} context]
+              (assoc context
+                     :result (rests/fetch! db start-date end-date)
+                     :redirect (route/url-for :rests-index))))})
+
+(def load-cached
+  {:name :load-cached-data
+   :enter (fn [context]
+            (let [data (get-in context [:request :query-params :data])
+                  db (get context :db)
+                  redirect-url (keyword (str data "-index"))]
+              (assoc context
+                     :result (privat-manager.config/load-cached-db data db)
+                     :redirect (route/url-for redirect-url))))})
+
+(def common-routes [(http.body/body-params)  render-result db])
+(def template-routes (conj common-routes wrap-template)) 
+
+(def routes
+  (route/expand-routes
+   #{["/settings" :get (conj template-routes settings)]
+     ["/settings" :post (conj common-routes set-account)]
+     ["/settings/load" :get (conj common-routes load-cached)]
+     ["/statements" :get (conj template-routes statements)]
+     ["/rests" :get (conj template-routes rests)]
+     ["/rests" :post (conj common-routes rests-load)]
+     ["/suppliers" :get (conj template-routes suppliers)]
+     ["/customers" :get (conj template-routes customers)]
+     ["/auth/login" :post (conj common-routes privat-auth-login)]})) 
+
+(defn test?
+  [service-map]
+  (= :test (:env service-map)))
+
+(defrecord Pedestal [service-map service]
   component/Lifecycle
-  (start [component]
-    (assoc component :handler (-> routes
-                                  (wrap-params)
-                                  (wrap-defaults
-                                   (-> site-defaults
-                                       (assoc-in [:static :resources] ["public" "public/vendor/gentelella"])
-                                       (assoc-in [:sessin :flash] true)
-                                       (update-in [:security] dissoc :anti-forgery))))))
-  (stop [component]
-    (dissoc component :handler)))
+  (start [this]
+    (if service
+      this
+      (cond-> service-map
+        true http/create-server
+        (not (test? service-map)) http/start
+        true ((partial assoc this :service)))))
+ (stop [this]
+    (when (and service (not (test? service-map)))
+      (http/stop service))
+    (assoc this :service nil)))
 
 (defrecord Webserver [app-atom handler host port server]
   component/Lifecycle
   (start [component]
     (println "Start web server")
     (assoc component :server
-           (run-jetty (:handler handler)
-                      {:port port :join? false})))
+           (http/start
+            (http/create-server {::http/routes routes
+                                 ::http/type :jetty
+                                 ::http/resource-path "/public/vendor/gentelella"
+                                 ::http/secure-headers {:content-security-policy-settings {:object-src "none"}}
+                                 ::http/join? false
+                                 ::http/port 8080}))))
   (stop [component]
     (println "Stop web server")
-    (.stop server)
+    (http/stop server)
     (assoc component :server nil)))
-
 
 (defn system [config-options]
   (let [{:keys [host port app-atom routes]} config-options]
     (component/system-map
-     :routes-handler (->Handler routes) 
-     :app (component/using
-           (map->Webserver {:host host
-                            :port port
-                            :app-atom app-atom}) {:handler :routes-handler}))))
+     :app (map->Webserver {:host host
+                           :port port
+                           :app-atom app-atom})))) 

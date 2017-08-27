@@ -10,9 +10,16 @@
                  [clj-time "0.14.0"]
                  [compojure "1.6.0"]
                  [hiccup "1.0.5"]
-                 [ring/ring-jetty-adapter "1.6.2"]
+                 ;[ring/ring-jetty-adapter "1.6.2"]
                  [ring/ring-defaults "0.3.1"]
-                 [com.stuartsierra/component "0.3.2"]]
+                 [com.stuartsierra/component "0.3.2"]
+                 [io.pedestal/pedestal.service "0.5.2"]
+                 [io.pedestal/pedestal.jetty "0.5.2"]
+                 [io.pedestal/pedestal.route "0.5.2"]
+                 [io.pedestal/pedestal.interceptor "0.5.2"]
+                 [reloaded.repl "0.2.3"]
+                 [org.clojure/tools.logging "0.4.0"]]
+                 ;[io.pedestal/pedestal.log "0.5.2"]]
 
   :main ^:skip-aot privat-manager.core
   :target-path "target/%s"
