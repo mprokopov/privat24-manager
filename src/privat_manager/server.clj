@@ -46,9 +46,8 @@
 (def set-account
   {:name :load-settings
    :enter (fn [context]
-            (let [form (get-in context [:request :form-params] {:account "super-truper"})] 
-              (assoc context
-                      :account (:account form))))
+            (let [account (get-in context [:request :form-params :account] "puzko")] 
+              (assoc context :account account))) 
    :leave (fn [context]
             (let [account (get context :account)
                   db (get context :db)]
@@ -63,6 +62,12 @@
               (assoc :result (auth/login! db)
                      :redirect (route/url-for :settings-index))))})
 
+(def debug-request
+  {:name :debug-request
+   :enter (fn [context]
+            (do
+              (println (:request context))
+              context))})
 (def debug
   {:name :debugger
    :enter (fn [context]
@@ -98,18 +103,28 @@
             (let [db (:db context)]
               (assoc context :result (rests/index @db))))})
 
-(def rests-load
-  {:name :rests-load
+(def get-dates
+  {:name :get-dates
    :enter (fn [context]
-            (let [{:keys [stdate endate]} (get-in context [:request :form-params] {:stdate "1.08.2017" :endate "15.08.2017"})]
+            (let [{:keys [stdate endate]} (get-in context [:request :form-params])] ; {:stdate "1.08.2017" :endate "15.08.2017"})]
               (assoc context
                      :start-date stdate
-                     :end-date endate)))
+                     :end-date endate)))})
+(def rests-load
+  {:name :rests-load
    :leave (fn [context]
             (let [{:keys [start-date end-date db]} context]
               (assoc context
                      :result (rests/fetch! db start-date end-date)
                      :redirect (route/url-for :rests-index))))})
+
+(def statements-load
+  {:name :statements-load
+   :leave (fn [context]
+            (let [{:keys [start-date end-date db]} context]
+              (assoc context
+                     :result (statements/fetch! db start-date end-date)
+                     :redirect (route/url-for :statements-index))))})
 
 (def load-cached
   {:name :load-cached-data
@@ -121,7 +136,44 @@
                      :result (privat-manager.config/load-cached-db data db)
                      :redirect (route/url-for redirect-url))))})
 
-(def common-routes [(http.body/body-params)  render-result db])
+(def save-cached
+  {:name :save-cached-data
+   :enter (fn [context]
+            (let [data (get-in context [:request :query-params :data])
+                  db (get context :db)
+                  redirect-url (keyword (str data "-index"))]
+              (assoc context
+                     :result (privat-manager.config/save-cached-db data db)
+                     :redirect (route/url-for redirect-url))))})
+
+(def load-customers
+  {:name :load-customers
+   :enter (fn [context]
+            (let [db (get context :db)]
+              (assoc context
+                     :result (customers/fetch! db)
+                     :redirect (route/url-for :customers-index))))})
+
+(def load-suppliers
+  {:name :load-suppliers
+   :enter (fn [context]
+            (let [db (get context :db)]
+              (assoc context
+                     :result (suppliers/fetch! db)
+                     :redirect (route/url-for :suppliers-index))))})
+
+(def statement
+  {:name :statement
+   :leave (fn [context]
+            (let [statement-id (get-in context [:request :path-params :id])
+                  id (Integer/parseInt statement-id)
+                  db (get context :db)]
+              ;(do
+                ;(println "id " id " \n")
+                ;context))})
+              (assoc context :result (statements/single id @db))))})
+
+(def common-routes [(http.body/body-params) render-result db])
 (def template-routes (conj common-routes wrap-template)) 
 
 (def routes
@@ -129,11 +181,16 @@
    #{["/settings" :get (conj template-routes settings)]
      ["/settings" :post (conj common-routes set-account)]
      ["/settings/load" :get (conj common-routes load-cached)]
+     ["/settings/save" :get (conj common-routes save-cached)]
      ["/statements" :get (conj template-routes statements)]
+     ["/statements/:id" :get (conj template-routes statement)]
+     ["/statements" :post (conj template-routes get-dates statements-load)]
      ["/rests" :get (conj template-routes rests)]
-     ["/rests" :post (conj common-routes rests-load)]
+     ["/rests" :post (conj common-routes get-dates rests-load)]
      ["/suppliers" :get (conj template-routes suppliers)]
+     ["/suppliers" :post (conj template-routes load-suppliers)]
      ["/customers" :get (conj template-routes customers)]
+     ["/customers" :post (conj template-routes load-customers)]
      ["/auth/login" :post (conj common-routes privat-auth-login)]})) 
 
 (defn test?
