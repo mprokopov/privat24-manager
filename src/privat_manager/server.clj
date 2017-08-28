@@ -183,7 +183,7 @@
                   id (Integer/parseInt otp-person-id)
                   db (get context :db)]
               (assoc context
-                     :result (privat.auth/send-otp2! id db))))})
+                     :result (privat.auth/send-otp! id db))))})
                      ;:redirect (route/url-for :settings-index))))})
 (def debug-result
   {:name :debug-result
@@ -199,7 +199,7 @@
             (let [otp (get-in context [:request :form-params :otp])
                   db (get context :db)]
               (assoc context
-                     :result (privat.auth/check-otp2! otp db)
+                     :result (privat.auth/check-otp! otp db)
                      :redirect (route/url-for :settings-index))))})
 
 (def statement->manager

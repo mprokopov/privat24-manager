@@ -6,8 +6,9 @@
 ;; TODO: отрабатывать ошибки 500 от сервера
 (defn login! [app-db]
   (do
-    (privat.auth/auth app-db)
-    (-> (privat.auth/auth-p24 app-db)
-        (get-in [:privat :session])
-        (update :expires #(time.coerce/from-long (* % 1000)))
-        utils/map-to-html-list)))
+    (privat.auth/authenticate app-db)
+    (privat.auth/authenticate-privat24 app-db)
+    {:flash "Авторизован успешно"}))
+        ;; (get-in [:privat :session])
+        ;; (update :expires #(time.coerce/from-long (* % 1000)))
+        ;;utils/map-to-html-list)))

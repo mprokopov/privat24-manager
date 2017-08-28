@@ -1,7 +1,8 @@
 (ns privat-manager.privat.auth
   (:require [clj-http.client :as client]
             [cheshire.core :as cheshire]
-            [privat-manager.privat.api :as api]))
+            [privat-manager.privat.api :as api]
+            [clj-time.coerce :as time.coerce]))
 
 (defn logout! [app-db]
   (let [{status :status} (api/post {:uri "auth/removeSession"
@@ -9,7 +10,7 @@
     (when (= 200 status)
       (swap! app-db assoc-in [:privat :session] nil))))
 
-(defn auth [app-db]
+(defn authenticate [app-db]
   (let [{app-id :app-id app-secret :app-secret} (get @app-db :privat)
         {body :body status :status} (api/post {:uri "auth/createSession"
                                                :body {"clientId" app-id
@@ -22,13 +23,15 @@
       {:message body})))
 
 
-(defn auth-p24
-  "creds atom with :privat :session structure"
+(defn authenticate-privat24
+  "authenticates as a business customer privat24"
   [app-db]
   (if-let [id (get-in @app-db [:privat :session :id])]
     (let [{login :login password :password} (:privat @app-db)
           {body :body status :status} (api/post {:uri "p24BusinessAuth/createSession"
-                                                 :body {"sessionId" id "login" login "password" password}})]
+                                                 :body {"sessionId" id
+                                                        "login" login
+                                                        "password" password}})]
       (case status
         200 (let [{:keys [clientId message roles expiresIn id]} (cheshire/parse-string body true)]
              (swap! app-db assoc-in [:privat :session] {:client-id clientId
@@ -40,14 +43,7 @@
 
     "auth required"))
 
-(defn send-otp [creds]
-  (let [id (get-in @creds [:session :id])
-        otp-dev (get-in @creds [:otp-id])]
-    (api/post {:uri "p24BusinessAuth/sendOtp"
-               :body {"sessionId" id "otpDev" otp-dev}})))
-
-
-(defn send-otp2! [otp app-db]
+(defn send-otp! [otp app-db]
   (let [{{{id :id} :session} :privat} @app-db
         {body :body status :status} (api/post {:uri "p24BusinessAuth/sendOtp"
                                                :body {"sessionId" id "otpDev" otp}})]
@@ -56,19 +52,7 @@
         (swap! app-db update-in [:privat :session] merge {:message message :status :otp-sent})))))
 
 
-(defn check-otp [creds otp]
-  (let [id (get-in @creds [:session :id])
-        {body :body status :status} (api/post {:uri "p24BusinessAuth/checkOtp" :body {"sessionId" id "otp" otp}})]
-      (when (= status 200)
-        (let [{:keys [clientId message roles expiresIn id]} (cheshire/parse-string body true)]
-          (swap! creds assoc :session {:client-id clientId
-                                       :id id
-                                       :message message
-                                       :expires expiresIn
-                                       :roles roles})))))
-
-
-(defn check-otp2! [otp app-db]
+(defn check-otp! [otp app-db]
   (let [{{{id :id} :session} :privat} @app-db
         {body :body status :status} (api/post {:uri "p24BusinessAuth/checkOtp" :body {"sessionId" id "otp" otp}})]
     (when (= status 200)
@@ -88,6 +72,6 @@
   (get-in privat [:session :id]))
 
 (defn authorized?
-  "ROLE_P24_BUSINESS should be under [:session :roles] atom"
+  "Checks if ROLE_P24_BUSINESS is in [:privat :session :roles]"
   [{{{roles :roles} :session} :privat}]
   (some #(= % "ROLE_P24_BUSINESS") roles)) 
