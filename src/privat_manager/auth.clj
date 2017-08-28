@@ -7,7 +7,7 @@
 (defn login! [app-db]
   (do
     (privat.auth/authenticate app-db)
-    (privat.auth/authenticate-privat24 app-db)
+    (privat.auth/authenticate-business-privat24 app-db)
     {:flash "Авторизован успешно"}))
         ;; (get-in [:privat :session])
         ;; (update :expires #(time.coerce/from-long (* % 1000)))

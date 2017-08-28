@@ -36,8 +36,8 @@
 
 (defn fetch! [app-db]
   (do
-    (manager.api/get-index2! :suppliers app-db)
-    (manager.api/populate-db! :suppliers app-db)))
+    (manager.api/get-category :suppliers app-db)
+    (manager.api/populate-category :suppliers app-db)))
 
 (defn form [uuid {edrpou :edrpou}]
   [:form.form-horizontal {:method :POST}
@@ -61,8 +61,8 @@
 (defn update! [uuid {edrpou :edrpou} app-db]
   (let [{{{supplier-edrpou-uuid :supplier-edrpou} :uuids} :manager} @app-db
         edrpou-uuid-key (keyword supplier-edrpou-uuid)
-        update-map (assoc-in (manager.api/fetch-uuid-item! uuid app-db) [:CustomFields edrpou-uuid-key] edrpou)
-        {status :status} (manager.api/api-update! uuid update-map app-db)]
+        update-map (assoc-in (manager.api/get-item uuid app-db) [:CustomFields edrpou-uuid-key] edrpou)
+        {status :status} (manager.api/update-item uuid update-map app-db)]
     (if (= status 200)
       [:p "Updated"
        (privat-manager.utils/map-to-html-list update-map)]

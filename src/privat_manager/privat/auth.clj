@@ -10,7 +10,9 @@
     (when (= 200 status)
       (swap! app-db assoc-in [:privat :session] nil))))
 
-(defn authenticate [app-db]
+(defn authenticate
+  "creates privat24 sesssion"
+  [app-db]
   (let [{app-id :app-id app-secret :app-secret} (get @app-db :privat)
         {body :body status :status} (api/post {:uri "auth/createSession"
                                                :body {"clientId" app-id
@@ -23,7 +25,7 @@
       {:message body})))
 
 
-(defn authenticate-privat24
+(defn authenticate-business-privat24
   "authenticates as a business customer privat24"
   [app-db]
   (if-let [id (get-in @app-db [:privat :session :id])]
@@ -49,7 +51,8 @@
                                                :body {"sessionId" id "otpDev" otp}})]
     (when (= 200 status)
       (let [{message :message} (cheshire/parse-string body true)]
-        (swap! app-db update-in [:privat :session] merge {:message message :status :otp-sent})))))
+        (swap! app-db update-in [:privat :session] merge {:message message
+                                                          :status :otp-sent})))))
 
 
 (defn check-otp! [otp app-db]
@@ -75,3 +78,8 @@
   "Checks if ROLE_P24_BUSINESS is in [:privat :session :roles]"
   [{{{roles :roles} :session} :privat}]
   (some #(= % "ROLE_P24_BUSINESS") roles)) 
+
+(defn otp-sent?
+  "Checks if one time password is requested"
+  [{{{status :status} :session} :privat}]
+  (= status :otp-sent))

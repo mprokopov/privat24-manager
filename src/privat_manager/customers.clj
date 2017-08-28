@@ -36,8 +36,8 @@
 
 (defn fetch! [app-db]
   (do
-    (manager.api/get-index2! :customers app-db)
-    (manager.api/populate-db! :customers app-db)
+    (manager.api/get-category :customers app-db)
+    (manager.api/populate-category :customers app-db)
     {:flash "База покупателей успешно загружена"}))
 
 
@@ -64,8 +64,8 @@
 (defn update! [uuid {edrpou :edrpou} app-db]
   (let [{{{customer-edrpou-uuid :customer-edrpou} :uuids} :manager} @app-db
         edrpou-uuid-key (keyword customer-edrpou-uuid)
-        update-map (assoc-in (manager.api/fetch-uuid-item! uuid app-db) [:CustomFields edrpou-uuid-key] edrpou)
-        {status :status} (manager.api/api-update! uuid update-map app-db)]
+        update-map (assoc-in (manager.api/get-item uuid app-db) [:CustomFields edrpou-uuid-key] edrpou)
+        {status :status} (manager.api/update-item uuid update-map app-db)]
      (if (= status 200)
       [:p "Updated"
        (privat-manager.utils/map-to-html-list update-map)]

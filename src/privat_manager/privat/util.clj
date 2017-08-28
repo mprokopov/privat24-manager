@@ -113,14 +113,14 @@
   "find supplier by custom code edrpou"
   [edrpou db]
   (first
-   (filter #(= edrpou (manager.api/edrpou-by-supplier2 (key %) db)) (get-in db [:db :suppliers]))))
+   (filter #(= edrpou (manager.api/supplier-edrpou (key %) db)) (get-in db [:db :suppliers]))))
 
 
 (defn get-customer-by-edrpou
   "find customer by custom code edrpou"
   [edrpou db]
   (first
-   (filter #(= edrpou (manager.api/edrpou-by-customer2 (key %) db)) (get-in db [:db :customers]))))
+   (filter #(= edrpou (manager.api/customer-edrpou (key %) db)) (get-in db [:db :customers]))))
 
 
 (defn assoc-transaction-type
@@ -313,12 +313,12 @@
     (:payment statement) (if (= :transfer (:payment statement)) :transfers :payments)))
 
 
-(defn post2
+(defn create-manager-statement
   "parses initial bank statement and makes POST to Manager API
   db should contain {:login '' :password ''}"
   [statement manager-db]
   (let [category-key (get-category-key statement)]
-    (manager.api/api-post2! category-key (render-manager-statement statement) manager-db))) 
+    (manager.api/create-item category-key (render-manager-statement statement) manager-db))) 
 
 ;; (defn get-statement-by-index [x db]
 ;;   (let [statements (get-in @db [:manager :db :mstatements])]

@@ -73,7 +73,7 @@
             (if (privat.auth/logged? @app-db) 
               (if (privat.auth/authorized? @app-db)
                 (privat-session-info @app-db)
-                (if (= (:status session) :otp-sent)
+                (if (privat.auth/otp-sent? @app-db)
                   (check-otp-form @app-db)
                   (send-otp-form @app-db)))
                 ;[:h3 "OTP" (map utils/map-to-html-list (get-in @app-db [:privat :session :message]))])

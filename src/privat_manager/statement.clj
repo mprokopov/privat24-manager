@@ -88,7 +88,7 @@
 
 (defn post! [index {{{statements :mstatements} :db :as manager} :manager}]
   (let [statement (nth statements index)
-        {status :status headers :headers} (privat.util/post2 statement manager)]
+        {status :status headers :headers} (privat.util/create-manager-statement statement manager)]
     [:div
      (if (= status 201)
        [:div
