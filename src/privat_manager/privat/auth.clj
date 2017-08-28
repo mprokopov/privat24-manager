@@ -29,13 +29,15 @@
     (let [{login :login password :password} (:privat @app-db)
           {body :body status :status} (api/post {:uri "p24BusinessAuth/createSession"
                                                  :body {"sessionId" id "login" login "password" password}})]
-      (when (= status 200)
-        (let [{:keys [clientId message roles expiresIn id]} (cheshire/parse-string body true)]
-          (swap! app-db assoc-in [:privat :session] {:client-id clientId
-                                                     :id id
-                                                     :message message
-                                                     :expires expiresIn
-                                                     :roles roles}))))
+      (case status
+        200 (let [{:keys [clientId message roles expiresIn id]} (cheshire/parse-string body true)]
+             (swap! app-db assoc-in [:privat :session] {:client-id clientId
+                                                        :id id
+                                                        :message message
+                                                        :expires expiresIn
+                                                        :roles roles}))
+        :else {:message body}))
+
     (print "auth required")))
 
 (defn send-otp [creds]

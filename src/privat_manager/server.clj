@@ -9,6 +9,7 @@
             [privat-manager.template :as template]
             [privat-manager.auth :as auth]
             [privat-manager.statement :as statements]
+            [privat-manager.privat.auth :as privat.auth]
             [ring.util.response :as response]
             [io.pedestal.http.route :as route]))
 
@@ -22,7 +23,7 @@
             (let [result (get context :result)
                   redirect (get context :redirect)]
               (if redirect
-                (assoc context :response (response/redirect redirect 301))
+                (assoc context :response (response/redirect redirect))
                 (assoc context :response (response/content-type (response/response result) "text/html")))))})
 
 (def wrap-template
@@ -59,7 +60,8 @@
   {:name :login
    :enter (fn [context]
             (let [db (get context :db)]
-              (assoc :result (auth/login! db)
+              (assoc context
+                     :result (auth/login! db)
                      :redirect (route/url-for :settings-index))))})
 
 (def debug-request
@@ -168,10 +170,49 @@
             (let [statement-id (get-in context [:request :path-params :id])
                   id (Integer/parseInt statement-id)
                   db (get context :db)]
-              ;(do
-                ;(println "id " id " \n")
-                ;context))})
               (assoc context :result (statements/single id @db))))})
+
+(def privat-send-otp
+  {:name :privat-send-otp
+   :enter (fn [context]
+            (let [otp-person-id (get-in context [:request :query-params :id])
+                  id (Integer/parseInt otp-person-id)
+                  db (get context :db)]
+              (assoc context
+                     :result (privat.auth/send-otp2! id db))))})
+                     ;:redirect (route/url-for :settings-index))))})
+(def debug-result
+  {:name :debug-result
+   :enter (fn [context]
+            (do
+              (println "result is " (:result context) "\n")
+              (println "query params" (:query-params context) "\n")
+              context))})
+
+(def privat-check-otp
+  {:name :privat-check-otp
+   :enter (fn [context]
+            (let [otp (get-in context [:request :form-params :otp])
+                  db (get context :db)]
+              (assoc context
+                     :result (privat.auth/check-otp2! otp db)
+                     :redirect (route/url-for :settings-index))))})
+
+(def statement->manager
+  {:name :statement->manager
+   :leave (fn [context]
+            (let [db (get context :db)
+                  statement-index (get-in context [:request :path-params :id])
+                  id (Integer/parseInt statement-index)]
+              (assoc context :result (statements/post! id @db))))})
+
+(def privat-logout
+  {:name :privat-logout
+   :leave (fn [context]
+            (let [db (get context :db)]
+              (assoc context
+                     :result (privat.auth/logout! db)
+                     :redirect (route/url-for :settings-index))))})
 
 (def common-routes [(http.body/body-params) render-result db])
 (def template-routes (conj common-routes wrap-template)) 
@@ -184,6 +225,7 @@
      ["/settings/save" :get (conj common-routes save-cached)]
      ["/statements" :get (conj template-routes statements)]
      ["/statements/:id" :get (conj template-routes statement)]
+     ["/statements/:id" :post (conj template-routes statement->manager)]
      ["/statements" :post (conj template-routes get-dates statements-load)]
      ["/rests" :get (conj template-routes rests)]
      ["/rests" :post (conj common-routes get-dates rests-load)]
@@ -191,7 +233,12 @@
      ["/suppliers" :post (conj template-routes load-suppliers)]
      ["/customers" :get (conj template-routes customers)]
      ["/customers" :post (conj template-routes load-customers)]
-     ["/auth/login" :post (conj common-routes privat-auth-login)]})) 
+     ["/auth/login" :post (conj template-routes privat-auth-login)] 
+     ["/auth/logout" :get (conj common-routes privat-logout)]
+     ["/auth/login/otp" :get (conj template-routes privat-send-otp)]
+     ["/auth/login/otp" :post (conj common-routes privat-check-otp)]}))
+
+
 
 (defn test?
   [service-map]

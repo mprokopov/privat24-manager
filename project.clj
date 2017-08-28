@@ -17,6 +17,10 @@
                  [io.pedestal/pedestal.jetty "0.5.2"]
                  [io.pedestal/pedestal.route "0.5.2"]
                  [io.pedestal/pedestal.interceptor "0.5.2"]
+                 [ch.qos.logback/logback-classic "1.1.2" :exclusions [org.slf4j/slf4j-api]]
+                 [org.slf4j/jul-to-slf4j "1.7.7"]
+                 [org.slf4j/jcl-over-slf4j "1.7.7"]
+                 [org.slf4j/log4j-over-slf4j "1.7.7"]
                  [reloaded.repl "0.2.3"]
                  [org.clojure/tools.logging "0.4.0"]]
                  ;[io.pedestal/pedestal.log "0.5.2"]]
@@ -24,6 +28,7 @@
   :main ^:skip-aot privat-manager.core
   :target-path "target/%s"
   :ring {:handler privat-manager.core/handler}
+  :resource-paths ["config", "resources"]
   :plugins [
             ;[lein-figwheel "0.5.8"]
             [lein-bower "0.5.1"]
