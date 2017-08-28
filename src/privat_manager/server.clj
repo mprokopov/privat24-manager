@@ -2,6 +2,7 @@
   (:require [com.stuartsierra.component :as component]
             [io.pedestal.http :as http]
             [io.pedestal.http.body-params :as http.body]
+            [io.pedestal.http.ring-middlewares :as ring-mid]
             [privat-manager.settings :as settings]
             [privat-manager.rests :as rests]
             [privat-manager.suppliers :as suppliers]
@@ -13,9 +14,9 @@
             [ring.util.response :as response]
             [io.pedestal.http.route :as route]))
 
-(defonce app-db (atom {:business-id ""
-                       :privat nil
-                       :manager nil}))
+;; (defonce app-db (atom {:business-id ""
+;;                        :privat nil
+;;                        :manager nil}))
 
 (def render-result
   {:name :render-result
@@ -23,16 +24,19 @@
             (let [result (get context :result)
                   redirect (get context :redirect)]
               (if redirect
-                (assoc context :response (response/redirect redirect))
+                (assoc context :response
+                       (cond-> (response/redirect redirect)
+                         (:flash result) (assoc :flash (:flash result))))
                 (assoc context :response (response/content-type (response/response result) "text/html")))))})
 
 (def wrap-template
   {:name :template
    :leave (fn [context]
-            (let [db (get context :db)]
-              (update context :result #(template/template db %))))})
+            (let [db (get context :db)
+                  flash (get-in context [:request :flash])] 
+               (update context :result #(template/template db flash %))))})
 
-(def db
+(defn db [app-db]
   {:name :db
    :enter (fn [context]
             (assoc context :db app-db))})
@@ -214,70 +218,113 @@
                      :result (privat.auth/logout! db)
                      :redirect (route/url-for :settings-index))))})
 
-(def common-routes [(http.body/body-params) render-result db])
-(def template-routes (conj common-routes wrap-template)) 
+(def get-uuid
+  {:name :get-uuid
+   :enter (fn [context]
+            (let [uuid (get-in context [:request :path-params :uuid])]
+              (assoc context :uuid uuid)))})
 
-(def routes
-  (route/expand-routes
-   #{["/settings" :get (conj template-routes settings)]
-     ["/settings" :post (conj common-routes set-account)]
-     ["/settings/load" :get (conj common-routes load-cached)]
-     ["/settings/save" :get (conj common-routes save-cached)]
-     ["/statements" :get (conj template-routes statements)]
-     ["/statements/:id" :get (conj template-routes statement)]
-     ["/statements/:id" :post (conj template-routes statement->manager)]
-     ["/statements" :post (conj template-routes get-dates statements-load)]
-     ["/rests" :get (conj template-routes rests)]
-     ["/rests" :post (conj common-routes get-dates rests-load)]
-     ["/suppliers" :get (conj template-routes suppliers)]
-     ["/suppliers" :post (conj template-routes load-suppliers)]
-     ["/customers" :get (conj template-routes customers)]
-     ["/customers" :post (conj template-routes load-customers)]
-     ["/auth/login" :post (conj template-routes privat-auth-login)] 
-     ["/auth/logout" :get (conj common-routes privat-logout)]
-     ["/auth/login/otp" :get (conj template-routes privat-send-otp)]
-     ["/auth/login/otp" :post (conj common-routes privat-check-otp)]}))
+(def single-supplier
+  {:name :single-supplier
+   :leave (fn [context]
+            (let [{:keys [db uuid]} context]
+              (assoc context :result (suppliers/single uuid db))))})
+
+(def single-customer
+  {:name :single-customer
+   :leave (fn [context]
+            (let [{:keys [db uuid]} context]
+              (assoc context :result (customers/single uuid db))))})
+
+(def update-customer
+  {:name :update-customer
+   :leave (fn [context]
+            (let [{:keys [db uuid]} context
+                  edrpou (get-in context [:request :form-params :edrpou])]
+              (assoc context
+                     :result (customers/update! uuid {:edrpou edrpou} db)
+                     :redirect (route/url-for :single-customer :params {:uuid uuid}))))})
+
+(def update-supplier
+  {:name :update-supplier
+   :leave (fn [context]
+            (let [{:keys [db uuid]} context
+                  edrpou (get-in context [:request :form-params :edrpou])]
+              (assoc context
+                     :result (suppliers/update! uuid {:edrpou edrpou} db)
+                     :redirect (route/url-for :single-supplier :params {:uuid uuid}))))})
+
+;; (def common-routes [(http.body/body-params) render-result db])
+;; (def template-routes (conj common-routes wrap-template)) 
+
+(defn routes [db-atom]
+  (let [common-routes [(http.body/body-params) ring-mid/cookies (ring-mid/session) (ring-mid/flash) render-result (db db-atom)]
+        template-routes (conj common-routes wrap-template)]
+   (route/expand-routes
+    #{["/" :get {:enter #(assoc % :response (response/redirect (route/url-for :settings-index)))} :route-name :index]
+      ["/settings" :get (conj template-routes settings)]
+      ["/settings" :post (conj common-routes set-account)]
+      ["/settings/load" :get (conj common-routes load-cached)]
+      ["/settings/save" :get (conj common-routes save-cached)]
+      ["/statements" :get (conj template-routes statements)]
+      ["/statements/:id" :get (conj template-routes statement)]
+      ["/statements/:id" :post (conj template-routes statement->manager)]
+      ["/statements" :post (conj template-routes get-dates statements-load)]
+      ["/rests" :get (conj template-routes rests)]
+      ["/rests" :post (conj common-routes get-dates rests-load)]
+      ["/suppliers" :get (conj template-routes suppliers)]
+      ["/suppliers/:uuid" :get (conj template-routes get-uuid single-supplier)]
+      ["/suppliers/:uuid" :post (conj common-routes get-uuid update-supplier)]
+      ["/suppliers" :post (conj template-routes load-suppliers)]
+      ["/customers" :get (conj template-routes customers)]
+      ["/customers" :post (conj template-routes load-customers)]
+      ["/customers/:uuid" :get (conj template-routes get-uuid single-customer)]
+      ["/customers/:uuid" :post (conj common-routes get-uuid update-customer)]
+      ["/auth/login" :post (conj template-routes privat-auth-login)] 
+      ["/auth/logout" :get (conj common-routes privat-logout)]
+      ["/auth/login/otp" :get (conj template-routes privat-send-otp)]
+      ["/auth/login/otp" :post (conj common-routes privat-check-otp)]})))
 
 
+;; (defn test?
+;;   [service-map]
+;;   (= :test (:env service-map)))
 
-(defn test?
-  [service-map]
-  (= :test (:env service-map)))
+;; (defrecord Pedestal [service-map service]
+;;   component/Lifecycle
+;;   (start [this]
+;;     (if service
+;;       this
+;;       (cond-> service-map
+;;         true http/create-server
+;;         (not (test? service-map)) http/start
+;;         true ((partial assoc this :service)))))
+;;  (stop [this]
+;;     (when (and service (not (test? service-map)))
+;;       (http/stop service))
+;;     (assoc this :service nil)))
 
-(defrecord Pedestal [service-map service]
-  component/Lifecycle
-  (start [this]
-    (if service
-      this
-      (cond-> service-map
-        true http/create-server
-        (not (test? service-map)) http/start
-        true ((partial assoc this :service)))))
- (stop [this]
-    (when (and service (not (test? service-map)))
-      (http/stop service))
-    (assoc this :service nil)))
-
-(defrecord Webserver [app-atom handler host port server]
+(defrecord Webserver [app-atom handler host port server env]
   component/Lifecycle
   (start [component]
     (println "Start web server")
     (assoc component :server
            (http/start
-            (http/create-server {::http/routes routes
+            (http/create-server {::http/routes (routes app-atom)
                                  ::http/type :jetty
                                  ::http/resource-path "/public/vendor/gentelella"
                                  ::http/secure-headers {:content-security-policy-settings {:object-src "none"}}
-                                 ::http/join? false
-                                 ::http/port 8080}))))
+                                 ::http/join? (not (= env :dev)) ;; false if development
+                                 ::http/port port}))))
   (stop [component]
     (println "Stop web server")
     (http/stop server)
     (assoc component :server nil)))
 
 (defn system [config-options]
-  (let [{:keys [host port app-atom routes]} config-options]
+  (let [{:keys [host port app-atom routes env]} config-options]
     (component/system-map
      :app (map->Webserver {:host host
                            :port port
+                           :env env
                            :app-atom app-atom})))) 

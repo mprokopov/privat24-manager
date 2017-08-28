@@ -48,6 +48,7 @@
   (let [f (fn [e] [:option {:value e :selected (= e (:business-id @app-db))} e])
         {roles :roles session :session} (:privat @app-db)]
      [:div
+        [:h1 "Настройки"]
         [:div.col-md-4
          (x-panel
           "Конфигурация предприятия"
@@ -84,4 +85,5 @@
     (do
       (config/load-settings! account app-db)
       (config/load-cached-db :customers app-db)
-      (config/load-cached-db :suppliers app-db))))
+      (config/load-cached-db :suppliers app-db)
+      {:flash "Настройки успешно загружены!"})))

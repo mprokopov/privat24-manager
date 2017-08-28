@@ -23,8 +23,9 @@
            (slurp (str "resources/settings/" bid ".edn"))))
    (load-uuids2 settings)))
 
-(defn save-cached-db [k db]
-  (let [bid (get-in @db [:business-id])
+(defn save-cached-db [business-id db]
+  (let [k (if (keyword? business-id) business-id (keyword business-id))
+        bid (get-in @db [:business-id])
         file-name (str "resources/cache/" bid "-" (name k) ".edn")]
     (spit file-name (get-in @db [:manager :db k]))))
 
@@ -35,4 +36,5 @@
      (swap! db assoc-in [:manager :db k]
             (read-string
              (slurp file-name)))
+     {:flash "Кеш успешно загружен"}
      (catch Exception e (str (.getMessage e))))))

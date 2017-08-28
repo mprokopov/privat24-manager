@@ -38,7 +38,7 @@
                                                         :roles roles}))
         :else {:message body}))
 
-    (print "auth required")))
+    "auth required"))
 
 (defn send-otp [creds]
   (let [id (get-in @creds [:session :id])

@@ -1,4 +1,5 @@
-FROM openjdk:latest
+#FROM openjdk:latest
+FROM clojure:alpine
 RUN mkdir -p /app /app/resources
 WORKDIR /app
 COPY target/uberjar/*-standalone.jar .

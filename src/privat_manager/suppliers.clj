@@ -12,6 +12,7 @@
   (let [{{edrpou-uuid :supplier-edrpou} :uuids} manager
         supplier-edrpou (keyword edrpou-uuid)]
     [:div
+     [:h1 "Поставщики"]
      [:form {:method :POST}
       [:input.btn.btn-primary {:type :submit :value "Загрузить из Manager"}]
       [:a.btn.btn-default {:href "/settings/load?data=suppliers"} "Загрузить из кеша"]]

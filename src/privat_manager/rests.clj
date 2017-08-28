@@ -9,6 +9,7 @@
 
 (defn index [{{{rests :rests} :db} :manager :as app-db}]
     [:div
+      [:h1 "Остатки"]
       (if (privat.auth/authorized? app-db)
         (date-form)
         [:div.alert.alert-danger "необходимо авторизоваться для загрузки остатков"])

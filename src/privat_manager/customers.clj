@@ -11,6 +11,7 @@
   (let [{{edrpou-uuid :customer-edrpou} :uuids} manager
         customer-edrpou (keyword edrpou-uuid)]
     [:div
+     [:h1 "Покупатели"]
      [:form {:method :POST}
       [:input.btn.btn-primary {:type :submit :value "Загрузить из Manager"}]
       [:a.btn.btn-default {:href "/settings/load?data=customers"} "Загрузить из кеша"]]
@@ -36,7 +37,8 @@
 (defn fetch! [app-db]
   (do
     (manager.api/get-index2! :customers app-db)
-    (manager.api/populate-db! :customers app-db)))
+    (manager.api/populate-db! :customers app-db)
+    {:flash "База покупателей успешно загружена"}))
 
 
 (defn form [uuid {edrpou :edrpou}]
