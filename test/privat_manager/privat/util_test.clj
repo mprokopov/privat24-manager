@@ -59,9 +59,9 @@
 
 
 (deftest test-check-purpose
-  (is (= (putil/check-payment-purpose (-> statement1 putil/parse-statement :purpose))
+  (is (= (putil/payment-purpose (-> statement1 putil/parse-statement :purpose))
          :supplier))
-  (is (= (putil/check-receipt-purpose (-> statement2 putil/parse-statement :purpose))
+  (is (= (putil/receipt-purpose (-> statement2 putil/parse-statement :purpose))
          :customer)))
 
 

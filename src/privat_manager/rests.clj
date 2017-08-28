@@ -1,6 +1,6 @@
 (ns privat-manager.rests
   (:require
-   [privat-manager.privat.util :as privat.util]
+   [privat-manager.util :as util]
    [privat-manager.privat.api :as privat.api]
    [privat-manager.privat.auth :as privat.auth]
    [privat-manager.template :refer [date-form]]
@@ -22,7 +22,7 @@
             [:th "Вх. остаток"]
             [:th "Исх. остаток"]]
           (for [r rests
-                :let [{:keys [date inrest outrest debit credit]} (privat.util/format-floats r)]]
+                :let [{:keys [date inrest outrest debit credit]} (util/format-floats r)]]
             [:tr
               [:td (time.format/unparse (time.format/formatter "dd MMMM YYYY") date)]
               [:td debit]
@@ -34,6 +34,6 @@
   (swap! app-db assoc-in [:manager :db :rests]
          (->>
           (privat.api/get-rests (:privat @app-db) stdate endate)
-          (mapv privat.util/parse-rest)
+          (mapv privat.util/rest)
           (sort-by :date)
           reverse)))

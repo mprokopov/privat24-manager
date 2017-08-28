@@ -106,7 +106,7 @@
   "fetch item for every DB uuid and update entry"
   [k app-db]
   (let [db (get-in @app-db [:manager :db k])
-        f (fn [[k v]] {k (fetch-uuid-item! (name k) app-db)})]
+        f (fn [[k v]] {k (get-item (name k) app-db)})]
     (swap! app-db assoc-in [:manager :db k]
      (into {} (pmap f db)))))
 

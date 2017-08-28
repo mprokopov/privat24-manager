@@ -1,7 +1,6 @@
 (ns privat-manager.auth
   (:require [privat-manager.privat.auth :as privat.auth]
-            [privat-manager.utils :as utils]
-            [clj-time.coerce :as time.coerce]))
+            [privat-manager.utils :as utils]))
 
 ;; TODO: отрабатывать ошибки 500 от сервера
 (defn login! [app-db]

@@ -224,13 +224,13 @@
             (let [uuid (get-in context [:request :path-params :uuid])]
               (assoc context :uuid uuid)))})
 
-(def single-supplier
+(def supplier
   {:name :single-supplier
    :leave (fn [context]
             (let [{:keys [db uuid]} context]
               (assoc context :result (suppliers/single uuid db))))})
 
-(def single-customer
+(def customer
   {:name :single-customer
    :leave (fn [context]
             (let [{:keys [db uuid]} context]
@@ -273,12 +273,12 @@
       ["/rests" :get (conj template-routes rests)]
       ["/rests" :post (conj common-routes get-dates rests-load)]
       ["/suppliers" :get (conj template-routes suppliers)]
-      ["/suppliers/:uuid" :get (conj template-routes get-uuid single-supplier)]
+      ["/suppliers/:uuid" :get (conj template-routes get-uuid supplier)]
       ["/suppliers/:uuid" :post (conj common-routes get-uuid update-supplier)]
       ["/suppliers" :post (conj template-routes load-suppliers)]
       ["/customers" :get (conj template-routes customers)]
       ["/customers" :post (conj template-routes load-customers)]
-      ["/customers/:uuid" :get (conj template-routes get-uuid single-customer)]
+      ["/customers/:uuid" :get (conj template-routes get-uuid customer)]
       ["/customers/:uuid" :post (conj common-routes get-uuid update-customer)]
       ["/auth/login" :post (conj template-routes privat-auth-login)] 
       ["/auth/logout" :get (conj common-routes privat-logout)]

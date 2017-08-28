@@ -33,3 +33,7 @@
         [:td (get-in statement [:credit :name])]
         [:td (get-in statement [:credit :edrpou])]])]
     [:p "Необходимо загрузить выписки"]))
+
+(defn format-floats [m]
+  (let [f (fn [acc mkey mval] (assoc acc mkey (if (float? mval) (format "%.2f" mval) mval)))]
+    (reduce-kv f {} m)))
