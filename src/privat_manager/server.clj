@@ -228,13 +228,15 @@
   {:name :single-supplier
    :leave (fn [context]
             (let [{:keys [db uuid]} context]
-              (assoc context :result (suppliers/single uuid db))))})
+              (assoc context :result (suppliers/single uuid @db))))})
 
 (def customer
   {:name :single-customer
    :leave (fn [context]
             (let [{:keys [db uuid]} context]
-              (assoc context :result (customers/single uuid db))))})
+              (do
+                (println uuid)
+                (assoc context :result (customers/single uuid @db)))))})
 
 (def update-customer
   {:name :update-customer

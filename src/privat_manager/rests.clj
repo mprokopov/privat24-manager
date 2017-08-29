@@ -1,6 +1,8 @@
 (ns privat-manager.rests
   (:require
-   [privat-manager.util :as util]
+   [privat-manager.privat.util :as privat.util]
+   [privat-manager.privat.parser :as privat.parser]
+   [privat-manager.utils :as util]
    [privat-manager.privat.api :as privat.api]
    [privat-manager.privat.auth :as privat.auth]
    [privat-manager.template :refer [date-form]]
@@ -34,6 +36,6 @@
   (swap! app-db assoc-in [:manager :db :rests]
          (->>
           (privat.api/get-rests (:privat @app-db) stdate endate)
-          (mapv privat.util/rest)
+          (mapv privat.parser/privat-rest)
           (sort-by :date)
           reverse)))

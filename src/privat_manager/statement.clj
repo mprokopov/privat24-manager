@@ -2,14 +2,30 @@
   (:require
    [privat-manager.utils :as utils]
    [privat-manager.template :refer [x-panel date-form]]
+   [privat-manager.utils :as utils]
    [privat-manager.privat.util :as privat.util]
+   [privat-manager.privat.parser :as privat.parser]
    [privat-manager.privat.api :as privat.api]
    [privat-manager.privat.auth :as privat.auth]
+   [privat-manager.manager.api :as manager.api]
    [clojure.string :as str]
-   [clj-time.format :as time.format])
+   [clj-time.format :as time.format]
+   [privat-manager.utils :as util])
   (:import java.util.Locale))
 
 ;; TODO: давать возможность выбрать тип платежа прямо из интерфейса
+
+(defn create-manager-statement
+  "parses initial bank statement and makes POST to Manager API
+  db should contain {:login '' :password ''}"
+  [statement manager-db]
+  (let [category-key (manager.api/category-key statement)]
+    (manager.api/create-item category-key (privat.util/render-manager-statement statement) manager-db))) 
+
+
+(defn privat->manager-transducer [app-db] (comp (map privat.parser/parse-statement)
+                                             (map privat.parser/assoc-transaction-type)
+                                             (map #(manager.api/statement % app-db))))
 
 (defn paging [id statements]
   (let [has-prev? (> id 0)
@@ -24,9 +40,8 @@
   (let [statement (-> statements
                       (nth index))
         {:keys [credit date debit amount comment recognized purpose payee payer]} statement
-        custom-formatter (time.format/with-locale (time.format/formatter "dd.MM.yy в HH:mm") (Locale. "ru"))
-        custom-formatter2 (time.format/formatter "dd.MM.yy")
-        mdate2 (time.format/unparse custom-formatter2 date)
+        custom-formatter (time.format/with-locale utils/custom-ru-formatter (Locale. "ru"))
+        mdate2 (time.format/unparse utils/custom-date-formatter date)
         mdate (time.format/unparse custom-formatter date)
         label (fn [statement] [:span.label.label-primary (-> (select-keys statement [:payment :receipt :transfer]) first key)])]
      [:div.col-md-10
@@ -88,7 +103,7 @@
 
 (defn post! [index {{{statements :mstatements} :db :as manager} :manager}]
   (let [statement (nth statements index)
-        {status :status headers :headers} (privat.util/create-manager-statement statement manager)]
+        {status :status headers :headers} (create-manager-statement statement manager)]
     [:div
      (if (= status 201)
        [:div
@@ -103,7 +118,7 @@
     (if (:error statements)
       (assoc statements :flash (:message statements))
       (swap! app-db assoc-in [:manager :db :mstatements] (->> statements
-                                                          (transduce (privat.util/privat->manager @app-db) conj)
+                                                          (transduce (privat->manager-transducer @app-db) conj)
                                                           (sort-by :date))))))
 ;; TODO
 ;; (defn fetch2! [app-db stdate endate]
