@@ -1,6 +1,6 @@
 (ns privat-manager.config)
 
-(def config-set #{"itservice" "puzko" "super-truper"})
+(def config-set #{"itservice" "puzko" "super-truper" "itpremium"})
 
 (defn load-uuids2 [settings]
   (let [bid (get-in @settings [:manager :business-id])]
