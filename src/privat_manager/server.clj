@@ -68,22 +68,22 @@
                      :result (auth/login! db)
                      :redirect (route/url-for :settings-index))))})
 
-(def debug-request
-  {:name :debug-request
-   :enter (fn [context]
-            (do
-              (println (:request context))
-              context))})
-(def debug
-  {:name :debugger
-   :enter (fn [context]
-            (do
-              (println context)
-              context))
-   :leave (fn [context]
-            (do
-              (println context)
-              context))})
+;; (def debug-request
+;;   {:name :debug-request
+;;    :enter (fn [context]
+;;             (do
+;;               (println (:request context))
+;;               context))})
+;; (def debug
+;;   {:name :debugger
+;;    :enter (fn [context]
+;;             (do
+;;               (println context)
+;;               context))
+;;    :leave (fn [context]
+;;             (do
+;;               (println context)
+;;               context))})
 
 (def statements
   {:name :statements-index
@@ -185,13 +185,13 @@
               (assoc context
                      :result (privat.auth/send-otp! id db))))})
                      ;:redirect (route/url-for :settings-index))))})
-(def debug-result
-  {:name :debug-result
-   :enter (fn [context]
-            (do
-              (println "result is " (:result context) "\n")
-              (println "query params" (:query-params context) "\n")
-              context))})
+;; (def debug-result
+;;   {:name :debug-result
+;;    :enter (fn [context]
+;;             (do
+;;               (println "result is " (:result context) "\n")
+;;               (println "query params" (:query-params context) "\n")
+;;               context))})
 
 (def privat-check-otp
   {:name :privat-check-otp
@@ -234,9 +234,7 @@
   {:name :single-customer
    :leave (fn [context]
             (let [{:keys [db uuid]} context]
-              (do
-                (println uuid)
-                (assoc context :result (customers/single uuid @db)))))})
+              (assoc context :result (customers/single uuid @db))))})
 
 (def update-customer
   {:name :update-customer

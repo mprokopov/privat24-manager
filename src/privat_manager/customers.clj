@@ -35,10 +35,12 @@
 
 
 (defn fetch! [app-db]
-  (do
-    (manager.api/get-category :customers app-db)
-    (manager.api/populate-category :customers app-db)
-    {:flash "База покупателей успешно загружена"}))
+  (if (manager.api/can-login? app-db)
+   (do
+     (manager.api/get-category :customers app-db)
+     (manager.api/populate-category :customers app-db)
+     {:flash "База покупателей успешно загружена"})
+   {:flash "Вам нужно авторизоваться для загрузки базы"}))
 
 
 (defn form [uuid {edrpou :edrpou}]

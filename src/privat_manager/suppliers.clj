@@ -35,9 +35,11 @@
       (x-panel "Контрагенты из выписки" (utils/parse-edrpou-statements app-db))]]))
 
 (defn fetch! [app-db]
-  (do
-    (manager.api/get-category :suppliers app-db)
-    (manager.api/populate-category :suppliers app-db)))
+  (if (manager.api/can-login? app-db)
+    (do
+      (manager.api/get-category :suppliers app-db)
+      (manager.api/populate-category :suppliers app-db))
+    {:flash "Вам нужно авторизоваться для загрузки базы"}))
 
 (defn form [uuid {edrpou :edrpou}]
   [:form.form-horizontal {:method :POST}

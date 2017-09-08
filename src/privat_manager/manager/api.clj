@@ -7,6 +7,10 @@
 
 (def statement-types #{:receipt :transfer :payment})
 
+(defn can-login? [app-db]
+  (reduce
+   (fn [acc item] (and acc (contains? (:manager @app-db) item))) [:login :password])) 
+
 (defn category-key [m]
   (case (-> (select-keys m statement-types)
             first
