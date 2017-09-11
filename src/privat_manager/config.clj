@@ -1,6 +1,19 @@
-(ns privat-manager.config)
+(ns privat-manager.config
+  (:require [clojure.java.io :as io]))
 
-(def config-set #{"itservice" "puzko" "super-truper" "itpremium"})
+(def config-resource (io/resource "settings"))
+
+(defn matched-config-name [item]
+  (let [n (.getName item)
+        [[_ found] _] (re-seq #"(.*).conf.edn$" n)]
+   found))
+
+(defn read-config []
+  (let [config-directory (file-seq (io/file config-resource))
+        filtered (filter #(re-matches #".*conf.edn$" (.getName %)) config-directory)]
+     (set (map matched-config-name filtered))))
+
+(def config-set (read-config))
 
 (defn load-uuids2 [settings]
   (let [bid (get-in @settings [:manager :business-id])]
@@ -20,7 +33,7 @@
   (do
    (reset! settings
           (read-string
-           (slurp (str "resources/settings/" bid ".edn"))))
+           (slurp (str "resources/settings/" bid ".conf.edn"))))
    (load-uuids2 settings)))
 
 (defn save-cached-db [business-id db]
