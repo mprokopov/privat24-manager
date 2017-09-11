@@ -1,0 +1,32 @@
+stages:
+  - build-jar
+  - build-docker
+#test:
+#  script:
+  # If you need to run any migrations or configure the database, this 
+  # would be the point to do it.  
+#  - lein test
+cache:
+  paths:
+  - target
+  
+build-jar:
+   image: clojure:lein-2.7.1-alpine
+   stage: build-jar
+   script:
+   - lein deps
+   - lein uberjar
+   artifacts:
+    paths:
+    - target/privat-manager-1.1.1-standalone.jar
+    expire_in: 1 week
+
+build-docker:
+  stage: build-docker
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - docker build --pull -t "$CI_REGISTRY_IMAGE" .
+    - docker push "$CI_REGISTRY_IMAGE"
