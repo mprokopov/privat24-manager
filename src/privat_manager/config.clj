@@ -1,7 +1,7 @@
 (ns privat-manager.config
   (:require [clojure.java.io :as io]))
 
-(def config-resource (io/resource "settings"))
+(def config-resource "resources/settings")
 
 (defn matched-config-name [item]
   (let [n (.getName item)

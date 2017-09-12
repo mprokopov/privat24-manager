@@ -34,9 +34,6 @@
             [lein-bower "0.5.1"]
             [lein-ring "0.9.7"]]
   :profiles {:uberjar {:aot :all}
-             :debug-repl {:resource-paths [" /Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/lib/"]
-                          :dependencies [[debug-middleware #=(eval (System/getenv "DEBUG_MIDDLEWARE_VERSION"))]]
-                          :repl-options {:nrepl-middleware ['debug-middleware.core/debug-middleware]}}
              :dev {:dependencies [[org.clojure/tools.namespace "0.2.11"]
                                   [com.stuartsierra/component.repl "0.2.0"]]
                    :main user
