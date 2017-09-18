@@ -1,6 +1,8 @@
 (ns privat-manager.rests
   (:require
    [privat-manager.privat.util :as privat.util]
+   [privat-manager.privat.parser :as privat.parser]
+   [privat-manager.utils :as util]
    [privat-manager.privat.api :as privat.api]
    [privat-manager.privat.auth :as privat.auth]
    [privat-manager.template :refer [date-form]]
@@ -9,6 +11,7 @@
 
 (defn index [{{{rests :rests} :db} :manager :as app-db}]
     [:div
+      [:h1 "Остатки"]
       (if (privat.auth/authorized? app-db)
         (date-form)
         [:div.alert.alert-danger "необходимо авторизоваться для загрузки остатков"])
@@ -21,7 +24,7 @@
             [:th "Вх. остаток"]
             [:th "Исх. остаток"]]
           (for [r rests
-                :let [{:keys [date inrest outrest debit credit]} (privat.util/format-floats r)]]
+                :let [{:keys [date inrest outrest debit credit]} (util/format-floats r)]]
             [:tr
               [:td (time.format/unparse (time.format/formatter "dd MMMM YYYY") date)]
               [:td debit]
@@ -33,6 +36,6 @@
   (swap! app-db assoc-in [:manager :db :rests]
          (->>
           (privat.api/get-rests (:privat @app-db) stdate endate)
-          (mapv privat.util/parse-rest)
+          (mapv privat.parser/privat-rest)
           (sort-by :date)
           reverse)))

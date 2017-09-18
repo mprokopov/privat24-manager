@@ -48,6 +48,7 @@
   (let [f (fn [e] [:option {:value e :selected (= e (:business-id @app-db))} e])
         {roles :roles session :session} (:privat @app-db)]
      [:div
+        [:h1 "Настройки"]
         [:div.col-md-4
          (x-panel
           "Конфигурация предприятия"
@@ -72,7 +73,7 @@
             (if (privat.auth/logged? @app-db) 
               (if (privat.auth/authorized? @app-db)
                 (privat-session-info @app-db)
-                (if (= (:status session) :otp-sent)
+                (if (privat.auth/otp-sent? @app-db)
                   (check-otp-form @app-db)
                   (send-otp-form @app-db)))
                 ;[:h3 "OTP" (map utils/map-to-html-list (get-in @app-db [:privat :session :message]))])
@@ -84,4 +85,5 @@
     (do
       (config/load-settings! account app-db)
       (config/load-cached-db :customers app-db)
-      (config/load-cached-db :suppliers app-db))))
+      (config/load-cached-db :suppliers app-db)
+      {:flash "Настройки успешно загружены!"})))

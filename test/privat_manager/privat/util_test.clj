@@ -1,6 +1,8 @@
 (ns privat-manager.privat.util-test
-  (:require [privat-manager.privat.util :refer [make-manager-statement parse-statement assoc-transaction-type render-manager-statement] :as putil]
+  (:require [privat-manager.privat.util :refer :all :as putil]
+            [privat-manager.privat.parser :refer :all]
             [clojure.test :refer :all]
+            [privat-manager.manager.api :as mapi]
             [clojure.walk :as walk]
             [privat-manager.config :as config]))
 
@@ -26,8 +28,8 @@
              :edrpou "35643866",
              :bank-mfo-number "300711",
              :bank-account-number "26002052712918"}}
-          (select-keys (putil/parse-statement statement1) [:amount :refp :debit :credit :purpose])))
-  (is (= (select-keys (putil/parse-statement statement2) [:amount :refp :debit :credit :purpose])
+          (select-keys (parse-statement statement1) [:amount :refp :debit :credit :purpose])))
+  (is (= (select-keys (parse-statement statement2) [:amount :refp :debit :credit :purpose])
          {:amount -96.0,
           :refp "JBKLH5AO03F5F3",
           :debit
@@ -44,24 +46,24 @@
           "абонплата за обслуговування в травнi 2017 р. згiдно р/ф N 400 вiд 01.05.2017р.ПДВ-16,00грн"})))
 
 (deftest test-assoc-transaction-type
-  (is (= (select-keys  (putil/assoc-transaction-type (putil/parse-statement statement1)) [:receipt :payment])
+  (is (= (select-keys  (assoc-transaction-type (parse-statement statement1)) [:receipt :payment])
          {:receipt :customer}))
 
-  (is (= (select-keys  (putil/assoc-transaction-type (putil/parse-statement statement2)) [:receipt :payment])
+  (is (= (select-keys  (assoc-transaction-type (parse-statement statement2)) [:receipt :payment])
          {:payment :supplier})))
 
 
 (deftest test-category-key
-  (is (= (putil/get-category-key (-> statement1 putil/parse-statement putil/assoc-transaction-type))
+  (is (= (mapi/category-key (-> statement1 parse-statement assoc-transaction-type))
          :receipts))
-  (is (= (putil/get-category-key (-> statement2 putil/parse-statement putil/assoc-transaction-type))
+  (is (= (mapi/category-key (-> statement2 parse-statement assoc-transaction-type))
          :payments)))
 
 
 (deftest test-check-purpose
-  (is (= (putil/check-payment-purpose (-> statement1 putil/parse-statement :purpose))
+  (is (= (payment-purpose (-> statement1 parse-statement :purpose))
          :supplier))
-  (is (= (putil/check-receipt-purpose (-> statement2 putil/parse-statement :purpose))
+  (is (= (receipt-purpose (-> statement2 parse-statement :purpose))
          :customer)))
 
 
@@ -72,9 +74,9 @@
 (deftest test-make-statement
   (is
     (= (-> statement1
-          putil/parse-statement
-          putil/assoc-transaction-type
-          (putil/make-manager-statement @app-db)
+          parse-statement
+          assoc-transaction-type
+          (mapi/statement @app-db)
           (select-keys [:amount :receipt :comment]))
       {
         :amount 400.0
@@ -82,9 +84,9 @@
         :comment "оплата покупателя"}))
   (is
     (= (-> statement2
-          putil/parse-statement
-          putil/assoc-transaction-type
-          (putil/make-manager-statement @app-db)
+          parse-statement
+          assoc-transaction-type
+          (mapi/statement @app-db)
           (select-keys [:amount :payment :comment]))
       {
         :amount 96.0
@@ -98,7 +100,7 @@
    (= (-> statement2
           parse-statement
           assoc-transaction-type
-          (make-manager-statement @app-db)
+          (mapi/statement @app-db)
           render-manager-statement)
       {"CreditAccount" "af5a0cb8-5e91-47be-92ac-52974ba7dbc4",
        "Date" "2017-05-10",
@@ -115,7 +117,7 @@
    (= (-> statement1
           parse-statement
           assoc-transaction-type
-          (make-manager-statement @app-db)
+          (mapi/statement @app-db)
           render-manager-statement)
       {"Payer" "Босна LG",
        "Date" "2017-05-10",

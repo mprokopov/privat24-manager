@@ -12,6 +12,7 @@
   (let [{{edrpou-uuid :supplier-edrpou} :uuids} manager
         supplier-edrpou (keyword edrpou-uuid)]
     [:div
+     [:h1 "Поставщики"]
      [:form {:method :POST}
       [:input.btn.btn-primary {:type :submit :value "Загрузить из Manager"}]
       [:a.btn.btn-default {:href "/settings/load?data=suppliers"} "Загрузить из кеша"]]
@@ -34,9 +35,11 @@
       (x-panel "Контрагенты из выписки" (utils/parse-edrpou-statements app-db))]]))
 
 (defn fetch! [app-db]
-  (do
-    (manager.api/get-index2! :suppliers app-db)
-    (manager.api/populate-db! :suppliers app-db)))
+  (if (manager.api/can-login? app-db)
+    (do
+      (manager.api/get-category :suppliers app-db)
+      (manager.api/populate-category :suppliers app-db))
+    {:flash "Вам нужно авторизоваться для загрузки базы"}))
 
 (defn form [uuid {edrpou :edrpou}]
   [:form.form-horizontal {:method :POST}
@@ -60,8 +63,8 @@
 (defn update! [uuid {edrpou :edrpou} app-db]
   (let [{{{supplier-edrpou-uuid :supplier-edrpou} :uuids} :manager} @app-db
         edrpou-uuid-key (keyword supplier-edrpou-uuid)
-        update-map (assoc-in (manager.api/fetch-uuid-item! uuid app-db) [:CustomFields edrpou-uuid-key] edrpou)
-        {status :status} (manager.api/api-update! uuid update-map app-db)]
+        update-map (assoc-in (manager.api/get-item uuid app-db) [:CustomFields edrpou-uuid-key] edrpou)
+        {status :status} (manager.api/update-item uuid update-map app-db)]
     (if (= status 200)
       [:p "Updated"
        (privat-manager.utils/map-to-html-list update-map)]

@@ -9,7 +9,7 @@
 
 (defn template
   "шаблон этого HTML"
-  [app-db & body]
+  [app-db flash body]
   (hiccup.core/html
    [:html
     [:head
@@ -17,6 +17,7 @@
      [:meta {:name "viewport" :content "width=device-width, initial-scale=1"}]
      [:link {:href "/vendors/bootstrap/dist/css/bootstrap.min.css" :rel "stylesheet"}]
      [:link {:href "/vendors/bootstrap-daterangepicker/daterangepicker.css" :rel "stylesheet"}]
+     [:link {:href "/vendors/pnotify/dist/pnotify.css" :rel "stylesheet"}]
      [:link {:href "/vendors/font-awesome/css/font-awesome.min.css" :rel "stylesheet"}]
      [:link {:href "/build/css/custom.min.css" :rel "stylesheet"}]
      [:link {:href "/vendors/google-code-prettify/bin/prettify.min.css" :rel "stylesheet"}]
@@ -46,13 +47,18 @@
            [:li
             [:a {:href "/auth/login"} "Логин"]]]]]]
        [:div.right_col {:role "main" :style "min-height:914px;"}
+        ;; (when flash
+        ;;   [:div.row flash])
         ;; [:div.page-title
         ;;  [:div.title_left
         ;;   [:h3 "Страница"]] 
         ;;  [:div.title_right]]
         ;; [:div.clearfix]
         [:div.row body]]]]
+     (when flash
+       [:script "window.onload = function(){new PNotify({title: 'Успех', text: '" flash "', type: 'success', styling: 'bootstrap3'});}"])
      [:script {:src "/vendors/jquery/dist/jquery.min.js"}]
+     [:script {:src "/vendors/pnotify/dist/pnotify.js"}]
      [:script {:src "/vendors/bootstrap/dist/js/bootstrap.js"}]
      [:script {:src "/vendors/moment/min/moment.min.js"}]
      [:script {:src "/vendors/bootstrap-daterangepicker/daterangepicker.js"}]

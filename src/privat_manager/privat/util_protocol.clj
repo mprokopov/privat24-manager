@@ -251,7 +251,7 @@
         {:keys [amount purpose debit credit date refp]} statement]
     (->BankStatement (map->BankAccount debit) (map->BankAccount credit) amount purpose date refp)))
 
-(defn make-manager-statement [bank-statement]
+(defn manager-statement [bank-statement]
   (case (get-type bank-statement)
     :payment (case (get-purpose bank-statement)
                :operational-expences-bank (map->OperationalExpensesPayment bank-statement)
