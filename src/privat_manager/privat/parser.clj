@@ -4,13 +4,6 @@
             [clj-time.format :as time.format]
             [privat-manager.config :as config]))
 
-
-(def purpose-set #{:operational-expences-bank
-                   :phone
-                   :transfer
-                   :salary
-                   :taxes
-                   :supplier} )
 (defn privat-rest
   "parses privatbant rests"
   [statement]

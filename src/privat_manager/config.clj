@@ -18,9 +18,15 @@
 
 (def config-set (read-config))
 
-(def payment-purposes (clojure.edn/read-string (slurp (io/file "resources/settings/payment-purposes.edn"))))
+(defn load-edn-resourse [res]
+  (let [res-file (io/file res)]
+    (if (.exists res-file)
+      (clojure.edn/read-string (slurp res-file))
+      {})))
 
-(def receipt-purposes (clojure.edn/read-string (slurp (io/file "resources/settings/receipt-purposes.edn"))))
+(def payment-purposes (load-edn-resourse "resources/settings/payment-purposes.edn"))
+
+(def receipt-purposes (load-edn-resourse "resources/settings/receipt-purposes.edn"))
 
 (defn load-uuids2 [settings]
   (let [bid (get-in @settings [:manager :business-id])]
