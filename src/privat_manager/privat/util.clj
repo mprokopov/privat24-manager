@@ -141,10 +141,8 @@
                  "BankAccount" (when debit-uuid (name debit-uuid))
                  "Notes" (str "Reference: " refp)
                  "BankClearStatus" "Cleared"
-                 "CustomFields" {}
                  "Lines" [{"Account" (when credit-uuid (name credit-uuid))
                            "Description" purpose
-                           "CustomFields" {}
                            "Amount" my-amount}]}]
     (cond-> payment
       tax (assoc-in ["Lines" 0 "TaxCode"] tax)

@@ -55,9 +55,9 @@
 
 (deftest test-category-key
   (is (= (mapi/category-key (-> statement1 parse-statement assoc-transaction-type))
-         :receipts))
+         :bank-receipts))
   (is (= (mapi/category-key (-> statement2 parse-statement assoc-transaction-type))
-         :payments)))
+         :bank-payments)))
 
 
 (deftest test-check-purpose
@@ -102,7 +102,7 @@
           assoc-transaction-type
           (mapi/statement @app-db)
           render-manager-statement)
-      {"CreditAccount" "af5a0cb8-5e91-47be-92ac-52974ba7dbc4",
+      {"BankAccount" "af5a0cb8-5e91-47be-92ac-52974ba7dbc4",
        "Date" "2017-05-10",
        "Lines"
        [{"Amount" "96.00",
@@ -125,8 +125,8 @@
        [{"Amount" "400.00",
          "Account" "e6b297f3-61f2-49b8-955d-45618c40c16b",
          "TaxCode" "5f1d5dfa-51f4-4b9f-aaa0-bd7b3db3de34",
-         "Description"
+         "Description",
          "Iнформацiйно-техн.супровiд за квiтень 2017р згiдно Рах.NББ20 вiд 30.04.2017р У сумi 333.33 грн., ПДВ - 20 % 66.67 грн."}],
        "BankClearStatus" "Cleared",
-       "DebitAccount" "af5a0cb8-5e91-47be-92ac-52974ba7dbc4",
+       "BankAccount" "af5a0cb8-5e91-47be-92ac-52974ba7dbc4",
        "Notes" "Reference: JBKLH5AO03EQGW"})))
