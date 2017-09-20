@@ -1,7 +1,10 @@
 (ns privat-manager.config
-  (:require [clojure.java.io :as io]))
+  (:require [clojure.java.io :as io]
+            [environ.core :refer [env]]))
 
 (def config-resource "resources/settings")
+
+(def manager-endpoint (env :manager-endpoint))
 
 (defn matched-config-name [item]
   (let [n (.getName item)

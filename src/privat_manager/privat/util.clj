@@ -138,11 +138,13 @@
   (let [my-amount (my-format "%.2f" (if (< 0  amount) amount (- amount)) "en-US")
         payment {"Date" (time.format/unparse (time.format/formatters :date) date)
                  "Payee" payee
-                 "CreditAccount" (when debit-uuid (name debit-uuid))
+                 "BankAccount" (when debit-uuid (name debit-uuid))
                  "Notes" (str "Reference: " refp)
                  "BankClearStatus" "Cleared"
+                 "CustomFields" {}
                  "Lines" [{"Account" (when credit-uuid (name credit-uuid))
                            "Description" purpose
+                           "CustomFields" {}
                            "Amount" my-amount}]}]
     (cond-> payment
       tax (assoc-in ["Lines" 0 "TaxCode"] tax)
@@ -152,7 +154,7 @@
   (let [my-amount (my-format "%.2f" (if (< 0  amount) amount (- amount)) "en-US")
         payment {"Date" (time.format/unparse (time.format/formatters :date) date)
                  "Payer" payer
-                 "DebitAccount" (when credit-uuid (name credit-uuid))
+                 "BankAccount" (when credit-uuid (name credit-uuid))
                  "Notes" (str "Reference: " refp)
                  "BankClearStatus" "Cleared"
                  "Lines" [{"Account" (when debit-uuid (name debit-uuid))

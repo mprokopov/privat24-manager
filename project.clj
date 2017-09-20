@@ -22,7 +22,8 @@
                  [org.slf4j/jcl-over-slf4j "1.7.7"]
                  [org.slf4j/log4j-over-slf4j "1.7.7"]
                  [reloaded.repl "0.2.3"]
-                 [org.clojure/tools.logging "0.4.0"]]
+                 [org.clojure/tools.logging "0.4.0"]
+                 [environ "1.1.0"]]
                  ;[io.pedestal/pedestal.log "0.5.2"]]
 
   :main ^:skip-aot privat-manager.core
@@ -32,9 +33,11 @@
   :plugins [
             ;[lein-figwheel "0.5.8"]
             [lein-bower "0.5.1"]
+            [lein-environ "1.1.0"]
             [lein-ring "0.9.7"]]
   :profiles {:uberjar {:aot :all}
              :dev {:dependencies [[org.clojure/tools.namespace "0.2.11"]
                                   [com.stuartsierra/component.repl "0.2.0"]]
+                   :env {:manager-endpoint "http://manager.it-premium.local:8088/api/"}
                    :main user
                    :source-paths ["dev"]}})

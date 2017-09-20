@@ -1,9 +1,12 @@
 (ns privat-manager.manager.api
   (:require [cheshire.core :as cheshire]
-            [clj-http.client :as client]))
+            [clj-http.client :as client]
+            [privat-manager.config :as config]))
 
 
-(def api (str "http://manager.it-premium.com.ua:8080/api/"))
+;; (def api (str "http://manager.it-premium.com.ua:8080/api/"))
+
+(def api config/manager-endpoint)
 
 (def statement-types #{:receipt :transfer :payment})
 
@@ -15,8 +18,8 @@
   (case (-> (select-keys m statement-types)
             first
             key)
-    :receipt :receipts
-    :payment :payments
+    :receipt :bank-receipts
+    :payment :bank-payments
     :transfer :transfers))
 
 (defn category

@@ -8,6 +8,10 @@ Works with [Privat24 API](https://link.privatbank.ua/console/wiki)
 and locally installed [Manager](https://www.manager.io) server
 
 ## Usage
+    Environment variable MANAGER_ENTRYPOINT should point to the Manager server API
+
+    $ export MANAGER_ENTRYPOINT=http://manager.io/api/
+
 
     $ lein ring server
 
@@ -26,6 +30,9 @@ and locally installed [Manager](https://www.manager.io) server
     $ lein uberjar 
     
     $ java -jar target/uberjar/privat-manager-1.0.1-standalone.jar
+    
+    
+    You can also build docker container with docker build .
 
 
 
