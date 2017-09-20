@@ -18,6 +18,10 @@
 
 (def config-set (read-config))
 
+(def payment-purposes (clojure.edn/read-string (slurp (io/file "resources/settings/payment-purposes.edn"))))
+
+(def receipt-purposes (clojure.edn/read-string (slurp (io/file "resources/settings/receipt-purposes.edn"))))
+
 (defn load-uuids2 [settings]
   (let [bid (get-in @settings [:manager :business-id])]
     (swap! settings assoc-in [:manager :uuids]

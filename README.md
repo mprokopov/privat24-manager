@@ -32,7 +32,7 @@ and locally installed [Manager](https://www.manager.io) server
     $ java -jar target/uberjar/privat-manager-1.0.1-standalone.jar
     
     
-    You can also build docker container with docker build .
+    You can also build docker container with docker build . or run ./build.sh
 
 
 

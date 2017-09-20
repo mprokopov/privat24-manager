@@ -1,9 +1,16 @@
 (ns privat-manager.privat.parser
   (:require [clojure.walk :as walk]
             [privat-manager.utils :refer [custom-formatter]]
-            [clj-time.format :as time.format]))
+            [clj-time.format :as time.format]
+            [privat-manager.config :as config]))
 
 
+(def purpose-set #{:operational-expences-bank
+                   :phone
+                   :transfer
+                   :salary
+                   :taxes
+                   :supplier} )
 (defn privat-rest
   "parses privatbant rests"
   [statement]
@@ -24,35 +31,22 @@
 (defn payment-purpose
   "parses payment string and returns key, by default is payment from supplier"
   [s]
-  (condp re-matches s
-    #"Комiсiя за викон.*" :operational-expences-bank
-    #"Комiсiя за обслуговування рахунку .*" :operational-expences-bank
-    #"Еквайрингова комiсiя.*" :operational-expences-bank
-    #"Ком\?с\?я РКО.*" :operational-expences-bank
-    #"Комiсiя за внесення коштiв.*" :operational-expences-bank
-    #"оплата за телекомунiкацiйнi послуги .*" :phone
-    #"сплата за телекомунiкацiйнi послуги .*" :phone
-    #"Выдача наличных средств.*" :transfer
-    #"Видача готiвки.*" :transfer
-    #"зарплата за .*" :salary
-    #".*Перевод на свою карту.*" :transfer
-    #"заробiтна плата.*" :salary
-    #"Заробiтна плата.*" :salary
-    #"Зарплата за.*" :salary
-    #"ЗАРОБIТНА ПЛАТА.*" :salary
-    #".*35643866\;.*" :taxes
-    #".*Єдиний податок.*" :taxes
-    #".*3053511633\;.*" :taxes
-    #"Погашення комiсiї за .*" :operational-expences-bank
-    :supplier))
+  (reduce (fn [acc [k v]]
+            (let [found (re-seq (re-pattern k) s)]
+              (if found
+                v
+                acc)))
+          :supplier config/payment-purposes))
 
 (defn receipt-purpose
   "parses receipt string and returns receipt key"
   [s]
-  (condp re-matches s
-    #"Агентська виногорода.*" :agent-income
-    #"Надходження торговельної виручки.*" :transfer
-    :customer))
+  (reduce (fn [acc [k v]]
+            (let [found (re-seq (re-pattern k) s)]
+              (if found
+                v
+                acc)))
+          :customer config/receipt-purposes))
 
 (defn assoc-transaction-type
   "assoc parsed statement with category from parsed purpose"
