@@ -82,5 +82,5 @@
 
 (defn otp-sent?
   "Checks if one time password is requested"
-  [{{{status :status} :session} :privat}]
-  (= status :otp-sent))
+  [{{{status :status message :message} :session} :privat}]
+  (or (= message "Confirm authorization with OTP") (= status :otp-sent)))
