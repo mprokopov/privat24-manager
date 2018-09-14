@@ -2,7 +2,7 @@ version: "2.0"
 services:
   srv:
     build: .
-    image: registry.it-expert.com.ua/nexus/privat-manager
+    image: registry.it-expert.com.ua/nexus/privat-manager:1.1.2
     volumes:
       - ./resources/settings:/app/resources/settings
     ports:

@@ -137,10 +137,11 @@
 (defn wrap-payment [{:keys [amount credit-uuid debit-uuid tax date payee refp purpose extra]}]
   (let [my-amount (my-format "%.2f" (if (< 0  amount) amount (- amount)) "en-US")
         payment {"Date" (time.format/unparse (time.format/formatters :date) date)
-                 "Payee" payee
+                 "Contact" payee
                  "BankAccount" (when debit-uuid (name debit-uuid))
                  "Notes" (str "Reference: " refp)
                  "BankClearStatus" "Cleared"
+                 "Type" "Payment"
                  "Lines" [{"Account" (when credit-uuid (name credit-uuid))
                            "Description" purpose
                            "Amount" my-amount}]}]
@@ -151,7 +152,7 @@
 (defn wrap-receipt [{:keys [amount credit-uuid debit-uuid tax date payer refp purpose]}]
   (let [my-amount (my-format "%.2f" (if (< 0  amount) amount (- amount)) "en-US")
         payment {"Date" (time.format/unparse (time.format/formatters :date) date)
-                 "Payer" payer
+                 "Contact" payer
                  "BankAccount" (when credit-uuid (name credit-uuid))
                  "Notes" (str "Reference: " refp)
                  "BankClearStatus" "Cleared"

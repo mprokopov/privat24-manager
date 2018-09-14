@@ -4,5 +4,5 @@ WORKDIR /app
 COPY target/uberjar/*-standalone.jar .
 COPY resources/public resources/public
 COPY resources/cache resources/cache
-CMD java -jar privat-manager-1.1.1-standalone.jar
+CMD java -jar privat-manager-1.1.2-standalone.jar
 EXPOSE 3000
