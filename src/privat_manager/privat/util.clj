@@ -142,6 +142,7 @@
                  "Notes" (str "Reference: " refp)
                  "BankClearStatus" "Cleared"
                  "Type" "Payment"
+                 "AmountsIncludeTax" "true"
                  "Lines" [{"Account" (when credit-uuid (name credit-uuid))
                            "Description" purpose
                            "Amount" my-amount}]}]
@@ -156,6 +157,7 @@
                  "BankAccount" (when credit-uuid (name credit-uuid))
                  "Notes" (str "Reference: " refp)
                  "BankClearStatus" "Cleared"
+                 "AmountsIncludeTax" "true"
                  "Lines" [{"Account" (when debit-uuid (name debit-uuid))
                            "Description" purpose
                            "Amount" my-amount}]}]
