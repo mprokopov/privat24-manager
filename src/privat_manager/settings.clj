@@ -46,7 +46,8 @@
 
 (defn index [app-db]
   (let [f (fn [e] [:option {:value e :selected (= e (:business-id @app-db))} e])
-        {roles :roles session :session} (:privat @app-db)]
+        {roles :roles session :session} (:privat @app-db)
+        manager-uri config/manager-endpoint]
      [:div
         [:h1 "Настройки"]
         [:div.col-md-4
@@ -60,6 +61,7 @@
         [:div.col-md-4
          (x-panel "Управление Manager"
           [:div
+           [:h2 "Manager API" ] [:p [:a {:href manager-uri} manager-uri]]
            [:h2 "Загрузить из кеша"]
            [:a.btn.btn-default {:href "/settings/load?data=customers"} "Покупателей"]
            [:a.btn.btn-default {:href "/settings/load?data=suppliers"} "Поставщиков"]

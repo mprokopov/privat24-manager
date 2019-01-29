@@ -1,4 +1,5 @@
-FROM clojure:alpine
+# FROM clojure:alpine
+FROM java:8-alpine
 RUN mkdir -p /app /app/resources
 WORKDIR /app
 COPY target/uberjar/*-standalone.jar .

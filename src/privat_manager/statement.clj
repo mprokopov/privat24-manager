@@ -45,7 +45,7 @@
         mdate (time.format/unparse custom-formatter date)
         label (fn [statement] [:span.label.label-primary (-> (select-keys statement [:payment :receipt :transfer]) first key)])]
      [:div.col-md-10
-      (x-panel [:div (when recognized [:i.fa.fa-check-square]) " банковская выписка от " mdate2] 
+      (x-panel [:div {:class (if recognized "statement_recognized" "statement_nonrecognized")} (when recognized [:i.fa.fa-check-square]) " банковская выписка от " mdate2] 
                [:div
                 [:div.jumbotron
                  [:h1 payee payer " " comment " " amount]

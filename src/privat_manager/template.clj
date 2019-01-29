@@ -20,6 +20,7 @@
      [:link {:href "/vendors/pnotify/dist/pnotify.css" :rel "stylesheet"}]
      [:link {:href "/vendors/font-awesome/css/font-awesome.min.css" :rel "stylesheet"}]
      [:link {:href "/build/css/custom.min.css" :rel "stylesheet"}]
+     [:link {:href "/styles.css" :rel "stylesheet"}]
      [:link {:href "/vendors/google-code-prettify/bin/prettify.min.css" :rel "stylesheet"}]
  
      [:title "Admin"]]
