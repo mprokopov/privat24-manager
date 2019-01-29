@@ -4,7 +4,7 @@ pipeline {
     stages{
         stage('Build jars') {
             steps{
-                sh 'lein uberjar'
+                sh '/var/lib/jenkins/lein uberjar'
             }
         }
         stage('Build docker') {
