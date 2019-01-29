@@ -4,7 +4,7 @@ pipeline {
     stages{
         stage('Build jars') {
             steps{
-                sh '/root/lein uberjar'
+                sh 'lein uberjar'
             }
         }
     }
