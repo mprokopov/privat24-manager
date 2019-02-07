@@ -1,6 +1,7 @@
 (ns privat-manager.config
   (:require [clojure.java.io :as io]
-            [environ.core :refer [env]]))
+            [environ.core :refer [env]]
+            [clojure.tools.logging :as log]))
 
 (def config-resource "resources/settings")
 
@@ -18,11 +19,16 @@
 
 (def config-set (read-config))
 
-(defn load-edn-resourse [res]
+(defn load-edn [res]
   (let [res-file (io/file res)]
     (if (.exists res-file)
       (clojure.edn/read-string (slurp res-file))
       {})))
+
+(defn load-edn-resourse [res]
+  (let [loaded (load-edn res)]
+    (when (seq loaded) (log/info "Successfully loaded " res))
+    loaded))
 
 (def payment-purposes (load-edn-resourse "resources/settings/payment-purposes.edn"))
 
@@ -42,11 +48,11 @@
   (let [bid (:business-id @settings)]
     (spit (str "resources/settings/" bid ".edn") @settings)))
 
-(defn load-settings! [bid settings]
+(defn load-settings! [business-id settings]
   (do
-   (reset! settings
-          (read-string
-           (slurp (str "resources/settings/" bid ".conf.edn"))))
+    (reset! settings
+            (read-string
+             (slurp (str "resources/settings/" business-id ".conf.edn"))))
    (load-uuids2 settings)))
 
 (defn save-cached-db [business-id db]

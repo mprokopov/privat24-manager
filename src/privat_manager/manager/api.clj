@@ -1,7 +1,9 @@
 (ns privat-manager.manager.api
   (:require [cheshire.core :as cheshire]
             [clj-http.client :as client]
-            [privat-manager.config :as config]))
+            [clojure.tools.logging :as log]
+            [privat-manager.config :as config]
+            [clojure.tools.logging :as log]))
 
 
 ;; (def api (str "http://manager.it-premium.com.ua:8080/api/"))
@@ -63,11 +65,12 @@
   "post map to manager API under key k"
   [k m manager-db]
   (let [{:keys [login password]} manager-db]
-   (client/post (category k manager-db)
-                {:accept :json
-                 :content-type :json
-                 :basic-auth [login password]
-                 :body (cheshire/generate-string m)})))
+    (log/info (str "post to " (category k manager-db) " body " (cheshire/generate-string m)))
+    (client/post (category k manager-db)
+                 {:accept :json
+                  :content-type :json
+                  :basic-auth [login password]
+                  :body (cheshire/generate-string m)})))
 
 (defn delete-item [uuid db]
   (let [{:keys [login password]} (:manager @db)]
