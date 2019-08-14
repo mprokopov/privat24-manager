@@ -12,7 +12,8 @@ pipeline {
                 script {
                     VERSION = readFile('VERSION')
                     docker.withRegistry("https://663084659937.dkr.ecr.eu-central-1.amazonaws.com", "ecr:eu-central-1:manager-credentials") {
-                        docker.image("privat-manager:${VERSION}").push()
+                        def customImage = docker.build("privat-manager:${VERSION}")
+                        customImage.push()
                     }
                 }
             }
