@@ -10,8 +10,14 @@ pipeline {
         stage('Build docker') {
             steps {
                 script {
-                    withCredentials(credentialsId: 'manager-credentials') {
-                        sh '(aws ecr get-login –registry-ids 663084659937  --region eu-central-1)'
+
+                    withCredentials([[$class: 'AmazonWebServicesCredentialsBinding',
+                                      accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+                                      credentialsId: 'manager-credentials',
+                                      secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
+                        withAWS(region:'eu-central-1') { 
+                            sh '(aws ecr get-login –registry-ids 663084659937  --region eu-central-1)'
+                        }
                     }
 
                     VERSION = readFile('VERSION')
