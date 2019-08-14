@@ -10,11 +10,13 @@ pipeline {
         stage('Build docker') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'a85c1d64-dcc5-4253-9092-c11eb058aa45', url: 'https://registry.it-expert.com.ua') {
-                        VERSION = readFile('VERSION')
-                        def customImage = docker.build("registry.it-expert.com.ua/nexus/privat-manager:${VERSION}")
-                        customImage.push()
+                    withCredentials(credentialsId: 'manager-credentials') {
+                        sh '(aws ecr get-login –registry-ids 663084659937  --region eu-central-1)'
                     }
+
+                    VERSION = readFile('VERSION')
+                    def customImage = docker.build("663084659937.dkr.ecr.eu-central-1.amazonaws.com/privat-manager:${VERSION}")
+                    customImage.push()
                 }
             }
         }
