@@ -15,8 +15,8 @@ pipeline {
                                       accessKeyVariable: 'AWS_ACCESS_KEY_ID',
                                       credentialsId: 'manager-credentials',
                                       secretKeyVariable: 'AWS_SECRET_ACCESS_KEY']]) {
-                        withAWS(region:'eu-central-1') { 
-                            sh '(aws ecr get-login –registry-ids 663084659937  --region eu-central-1)'
+                        withAWS(region:'eu-central-1') {
+                            sh '(aws ecr get-login --registry-ids 663084659937  --region eu-central-1)'
                         }
                     }
 
