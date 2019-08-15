@@ -1,4 +1,4 @@
-(defproject privat-manager "1.2"
+(defproject privat-manager "1.2.3"
   :description "Import bank statements from Privat24 to Manager.io API"
   :url "http://github.com/mprokopov/privat24-manager"
   :license {:name "Eclipse Public License"
@@ -23,7 +23,6 @@
                  [org.slf4j/jcl-over-slf4j "1.7.7"]
                  [org.slf4j/log4j-over-slf4j "1.7.7"]
                  [reloaded.repl "0.2.4"]
-                 [org.clojure/tools.logging "0.4.0"]
                  [org.clojure/core.async "0.4.474"]
                  [environ "1.1.0"]]
                  ;[io.pedestal/pedestal.log "0.5.2"]]

@@ -1,0 +1,27 @@
+{:deps {cheshire {:mvn/version "5.7.1"}
+        clj-http {:mvn/version "3.6.1" }
+        clj-time {:mvn/version "0.14.0" }
+        hiccup { :mvn/version "1.0.5" }
+        compojure { :mvn/version "1.6.0" }
+        ring/ring-defaults { :mvn/version "0.3.1" }
+        com.stuartsierra/component { :mvn/version "0.3.2" }
+        io.pedestal/pedestal.service { :mvn/version "0.5.2" }
+        io.pedestal/pedestal.jetty { :mvn/version "0.5.2" }
+        io.pedestal/pedestal.route { :mvn/version "0.5.2" }
+        io.pedestal/pedestal.interceptor { :mvn/version "0.5.2" }
+        org.clojure/tools.logging { :mvn/version "0.4.1" }
+        org.slf4j/jul-to-slf4j { :mvn/version "1.7.7" }
+        org.slf4j/jcl-over-slf4j { :mvn/version "1.7.7" }
+        org.slf4j/log4j-over-slf4j { :mvn/version "1.7.7" }
+        environ { :mvn/version "1.1.0" }
+        reloaded.repl { :mvn/version "0.2.4" }
+        org.clojure/core.async { :mvn/version "0.4.474" }
+        com.stuartsierra/component.repl { :mvn/version "0.2.0" }
+        }
+ ;; :extra-paths ["config" "resources"]
+ :paths ["src" "dev" "config" "resources"]
+ :aliases
+ {:rebl {:extra-deps { org.clojure/clojure {:mvn/version "1.10.0"}
+			     org.clojure/core.async {:mvn/version "0.4.490"}
+			     com.cognitect/rebl {:local/root "/Users/nexus/Downloads/REBL-0.9.109/REBL-0.9.109.jar"}}}}
+ }
