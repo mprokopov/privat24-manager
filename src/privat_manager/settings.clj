@@ -7,6 +7,11 @@
             [clj-time.coerce :as time.coerce])
   (:import java.util.Locale))
 
+(defn get-api-auth [{privat :privat}]
+  {:id (get privat :privat-id)
+   :token (get privat :privat-token)
+   :bank-account-number (get privat :bank-account-number) })
+
 (defn privat-session-info [{privat-session :privat}]
   (let [{{roles :roles expires :expires :as session} :session bid :business-id} privat-session
         formatter (time.format/with-locale (time.format/formatter "HH:mm dd MMMM YYYY") (Locale. "ru"))

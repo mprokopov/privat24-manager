@@ -5,6 +5,8 @@
 
 (def custom-formatter (time.format/formatter "YYYYMMdd'T'HH:mm:ss"))
 
+(def custom-datetime-formatter (time.format/formatter "dd.MM.YYYY HH:mm:ss"))
+
 (def custom-ru-formatter (time.format/formatter "dd.MM.yy в HH:mm"))
 
 (def custom-date-formatter (time.format/formatter "dd.MM.yy"))

@@ -16,3 +16,4 @@
                                   :app-atom app-db
                                   :env :dev})))
 
+(def auth (privat-manager.settings/get-api-auth @app-db))

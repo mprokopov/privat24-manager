@@ -11,7 +11,7 @@ $('#testDate').daterangepicker({
     locale: {
         firstDay: 1,
         "autoApply": true,
-        format: 'DD.MM.YYYY',
+        format: 'DD-MM-YYYY',
         "applyLabel": "Применить",
         "customRangeLabel": "Выбрать",
         "cancelLabel": "Отмена",
@@ -43,6 +43,6 @@ $('#testDate').daterangepicker({
     "alwaysShowCalendars": true,
     "maxDate": moment(),
 }, function (start, end, label) {
-    $('input[name="stdate"]').val(start.format('DD.MM.YYYY'));
-    $('input[name="endate"]').val(end.format('DD.MM.YYYY'));
+    $('input[name="stdate"]').val(start.format('DD-MM-YYYY'));
+    $('input[name="endate"]').val(end.format('DD-MM-YYYY'));
 });

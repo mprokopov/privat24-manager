@@ -1,18 +1,22 @@
 (ns privat-manager.privat.parser
   (:require [clojure.walk :as walk]
-            [privat-manager.utils :refer [custom-formatter]]
+            [privat-manager.utils :refer [custom-formatter custom-datetime-formatter]]
             [clj-time.format :as time.format]
             [privat-manager.config :as config]))
 
 (defn privat-rest
   "parses privatbant rests"
   [statement]
-  (let [statement (walk/stringify-keys statement)]
-    {:inrest (Float/parseFloat (get statement "inrest"))
-     :outrest (Float/parseFloat (get statement "outrest"))
-     :debit (Float/parseFloat (get statement "debet"))
-     :credit (Float/parseFloat (get statement "credit"))
-     :date (time.format/parse custom-formatter (get-in statement ["date" "@id"]))})) ;; @customerdate
+  (let [acc (-> statement keys first)
+        statement (walk/stringify-keys (get statement acc))]
+    {
+     :acc acc
+     :inrest (Float/parseFloat (get statement "balanceIn"))
+     :outrest (Float/parseFloat (get statement "balanceOut"))
+     :debit (Float/parseFloat (get statement "turnoverDebt"))
+     :credit (Float/parseFloat (get statement "turnoverCred"))
+     :date (time.format/parse custom-datetime-formatter (get-in statement ["dpd"]))
+     })) ;; @customerdate
 
 (defn statement-type
   "return :receipt or :payment depending on amount"

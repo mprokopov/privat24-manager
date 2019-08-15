@@ -75,10 +75,12 @@
 (defn logged? [{privat :privat}]
   (get-in privat [:session :id]))
 
-(defn authorized?
-  "Checks if ROLE_P24_BUSINESS is in [:privat :session :roles]"
-  [{{{roles :roles} :session} :privat}]
-  (some #(= % "ROLE_P24_BUSINESS") roles)) 
+;; (defn authorized?
+;;   "Checks if ROLE_P24_BUSINESS is in [:privat :session :roles]"
+;;   [{{{roles :roles} :session} :privat}]
+;;   (some #(= % "ROLE_P24_BUSINESS") roles)) 
+
+(defn authorized? [_] true)
 
 (defn otp-sent?
   "Checks if one time password is requested"
