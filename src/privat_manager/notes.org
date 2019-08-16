@@ -1,5 +1,0 @@
-* Tasks
-** TODO форматирование дат
-http://www.seostella.com/ru/article/2012/02/05/formatirovanie-daty-v-java.html
-  [2017-07-24 Mon]
-  [[file:~/Sites/privat-manager/src/privat_manager/core.clj::(swap!%20manager%20assoc-in%20%5B:db%20:mstatements%5D%20(->>%20(privat.util/make-statements-list%20manager)]]

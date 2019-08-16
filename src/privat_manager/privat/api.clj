@@ -15,7 +15,7 @@
 
 (defn get [{:keys [uri session query-params]}]
   (client/get (str api uri)
-              {:content-type :json
+              {;;:content-type :json
                :accept :json
                :throw-exceptions false
                ;; :debug true
@@ -23,7 +23,8 @@
                :query-params query-params
                :headers {"Id" (:privat-id session)
                          "Token" (:privat-token session)
-                         "Content-type" "application/json;charset=utf8"}}))
+                         "Content-type" "application/json;charset=utf8"
+                         }}))
 
 (defn get-body [m]
   (let [{status :status body :body} (get m)]
@@ -36,13 +37,21 @@
              :session session
              :query-params {"acc" (:bank-account-number session)
                             ;; "showInf" true
-                            "startDate" stdate     ;"01.05.2017"
-                            "endDate" endate}})) ;"10.05.2017"
+                            "startDate" stdate     ;"01-05-2017"
+                            "endDate" endate}})) ;"10-05-2017"
 
 (defn get-rests [session stdate endate]
   (get-body {:uri "rest"
              :session session
              :query-params {"acc" (:bank-account-number session)
                             ;; "showInf" true
-                            "startDate" stdate ;"01.05.2017"
+                            "startDate" stdate ;"01-05-2017"
                             "endDate" endate}}))
+
+;; (->
+;;  (get-statements (:privat @dev/app-db ) "01-08-2019" "05-08-2019")
+;;  :StatementsResponse
+;;  :statements
+;;  first
+;;  privat-manager.privat.parser/parse-statement2
+;;  )

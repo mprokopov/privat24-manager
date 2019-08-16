@@ -19,11 +19,12 @@
      })) ;; @customerdate
 
 (defn statement-type
-  "return :receipt or :payment depending on amount"
-  [{amount :amount}]
-  (if (> amount 0)
-    :receipt
-    :payment))
+  "return :receipt or :payment depending on :transaction-type"
+  [{type :transaction-type}]
+  (condp = type
+    "C" :receipt
+    "D" :payment
+    "n/a"))
 
 (defn payment-purpose
   "parses payment string and returns key, by default is payment from supplier"
@@ -54,7 +55,6 @@
       :payment (assoc parsed-statement :payment (payment-purpose (:purpose parsed-statement)))
       nil)))
 
-
 (defn privat-account
   "returns map of credit or debit part of the statement"
   [m]
@@ -64,6 +64,22 @@
      :edrpou (get customer "@crf")
      :bank-mfo-number (get-in customer ["bank" "@code"])
      :bank-account-number (get account "@number")}))
+
+(defn privat-statement-debit
+  [m]
+  {:name (get m :BPL_A_NAM)
+   :edrpou (get m :BPL_A_CRF)
+   :bank-mfo-number (get m :BPL_A_MFO)
+   :bank-account-number (get m :BPL_A_ACC)
+   })
+
+(defn privat-statement-credit
+  [m]
+  {:name (get m :BPL_B_NAM)
+   :edrpou (get m :BPL_B_CRF)
+   :bank-mfo-number (get m :BPL_B_MFO)
+   :bank-account-number (get m :BPL_B_ACC)
+   })
 
 (defn parse-statement
   "parses privatbank statement and returns map for further processing"
@@ -75,3 +91,17 @@
      :purpose (get statement "purpose")
      :debit (privat-account (get-in statement ["debet"]))
      :credit (privat-account (get-in statement ["credit"]))})) 
+
+(defn parse-statement2
+  "parses privatbank statement and returns map for further processing"
+  [input]
+  (let [transaction_id (-> input keys first)
+        statement (get input transaction_id)]
+    {:amount (Float/parseFloat (get-in statement [:BPL_SUM]))
+     :refp transaction_id
+     :date (time.format/parse custom-datetime-formatter (get-in statement [:DATE_TIME_DAT_OD_TIM_P])) ;; @customerdate
+     :purpose (get statement :BPL_OSND)
+     :debit (privat-statement-debit statement)
+     :credit (privat-statement-credit statement)
+     :transaction-type (get statement :TRANTYPE)
+     }))

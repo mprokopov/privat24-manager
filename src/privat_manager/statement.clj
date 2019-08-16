@@ -23,7 +23,7 @@
     (manager.api/create-item category-key (privat.util/render-manager-statement statement) manager-db))) 
 
 
-(defn privat->manager-transducer [app-db] (comp (map privat.parser/parse-statement)
+(defn privat->manager-transducer [app-db] (comp (map privat.parser/parse-statement2)
                                              (map privat.parser/assoc-transaction-type)
                                              (map #(manager.api/statement % app-db))))
 
@@ -118,8 +118,10 @@
     (if (:error statements)
       (assoc statements :flash (:message statements))
       (swap! app-db assoc-in [:manager :db :mstatements] (->> statements
-                                                          (transduce (privat->manager-transducer @app-db) conj)
-                                                          (sort-by :date))))))
+                                                              :StatementsResponse
+                                                              :statements
+                                                              (transduce (privat->manager-transducer @app-db) conj)
+                                                              (sort-by :date))))))
 ;; TODO
 ;; (defn fetch2! [app-db stdate endate]
 ;;   (do
