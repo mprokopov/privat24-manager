@@ -55,16 +55,6 @@
       :payment (assoc parsed-statement :payment (payment-purpose (:purpose parsed-statement)))
       nil)))
 
-(defn privat-account
-  "returns map of credit or debit part of the statement"
-  [m]
-  (let [account (get m "account")
-        customer (get account "customer")]
-    {:name (get account "@name")
-     :edrpou (get customer "@crf")
-     :bank-mfo-number (get-in customer ["bank" "@code"])
-     :bank-account-number (get account "@number")}))
-
 (defn privat-statement-debit
   [m]
   {:name (get m :BPL_A_NAM)
@@ -80,17 +70,6 @@
    :bank-mfo-number (get m :BPL_B_MFO)
    :bank-account-number (get m :BPL_B_ACC)
    })
-
-(defn parse-statement
-  "parses privatbank statement and returns map for further processing"
-  [statement]
-  (let [statement (walk/stringify-keys statement)]
-    {:amount (Float/parseFloat (get-in statement ["amount" "@amt"]))
-     :refp (get-in statement ["info" "@refp"])
-     :date (time.format/parse custom-formatter (get-in statement ["info" "@postdate"])) ;; @customerdate
-     :purpose (get statement "purpose")
-     :debit (privat-account (get-in statement ["debet"]))
-     :credit (privat-account (get-in statement ["credit"]))})) 
 
 (defn parse-statement2
   "parses privatbank statement and returns map for further processing"

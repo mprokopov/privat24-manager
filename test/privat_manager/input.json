@@ -1,0 +1,74 @@
+{
+  "StatementsResponse": {
+    "ResponceRef": "",
+    "statements": [
+      {
+        "26003052719556": [
+          {
+            "JBKLJ82O2D4EXO": {
+              "BPL_FL_DC": "C",
+              "TRANTYPE": "C",
+              "REF": "JBKLJ82O2D4EXO.P",
+              "BPL_REF": "JBKLJ82O2D4EXO",
+              "BPL_REFN": "P",
+              "BPL_FL_REAL": "r",
+              "BPL_DOC_TYP": "p",
+              "BPL_NUM_DOC": "2248",
+              "BPL_DAT_OD": "02.08.2019",
+              "BPL_TIM_P": "10:30",
+              "BPL_SUM": "1050.00",
+              "BPL_CCY": "UAH",
+              "BPL_B_ACC": "26003052719556",
+              "BPL_B_NAM": "Пузько Олександр Анатолiйович пiдпр",
+              "BPL_B_CRF": "3053511633",
+              "BPL_B_MFO": "300711",
+              "BPL_A_ACC": "26008055320741",
+              "BPL_A_CRF": "13315739",
+              "BPL_A_NAM": "ГЕРВIН ТОВ",
+              "BPL_A_MFO": "302689",
+              "BPL_A_MFO_NAME": "ВIННИЦЬКА ФIЛIЯ АТ КБ \"ПРИВАТБАНК\"",
+              "BPL_A_MFO_CITY": "Вiнниця",
+              "BPL_B_MFO_NAME": "ПЕЧЕРСЬКА ФIЛIЯ АТ КБ \"ПРИВАТБАНК\"",
+              "BPL_B_MFO_CITY": "Київ",
+              "BPL_OSND": "За консультування з питань iнформатизацiї зг.рах.Nб/н вiд 31.07.2019р. Без ПДВ",
+              "BPL_PR_PR": "r",
+              "BPL_DAT_KL": "02.08.2019",
+              "UNAM_PR": "Payment Monitor",
+              "BPL_A_MFO_CACC": "...",
+              "BPL_B_MFO_CACC": "...",
+              "ACC": "26003052719556",
+              "BPL_APP": "KB",
+              "BPL_DLR": "CP//JyG8og8=",
+              "BPL_PR_CLS": "P",
+              "BPL_SUM_E": "1050.00",
+              "BPL_MVT": " ",
+              "BPL_MVTS": " ",
+              "BNK": "PB",
+              "BPL_C_BAL": "0.00",
+              "ID_ORG": 1502223904250,
+              "ID": "1502223904250",
+              "BPL_B_PCT": "201",
+              "BGF_CUS_ID": 19132734,
+              "BPL_DLP": "ICB",
+              "AUT_MY_ACC": "26003052719556",
+              "AUT_MY_NAM": "Пузько Олександр Анатолiйович пiдпр",
+              "AUT_MY_CRF": "3053511633",
+              "AUT_MY_MFO": "300711",
+              "AUT_MY_MFO_NAME": "ПЕЧЕРСЬКА ФIЛIЯ АТ КБ \"ПРИВАТБАНК\"",
+              "AUT_MY_MFO_CITY": "Київ",
+              "AUT_MY_MFO_CACC": "...",
+              "AUT_CNTR_ACC": "26008055320741",
+              "AUT_CNTR_NAM": "ГЕРВIН ТОВ",
+              "AUT_CNTR_CRF": "13315739",
+              "AUT_CNTR_MFO": "302689",
+              "AUT_CNTR_MFO_NAME": "ВIННИЦЬКА ФIЛIЯ АТ КБ \"ПРИВАТБАНК\"",
+              "AUT_CNTR_MFO_CITY": "Вiнниця",
+              "AUT_CNTR_MFO_CACC": "...",
+              "DATE_TIME_DAT_OD_TIM_P": "02.08.2019 10:30:00"
+            }
+          }         
+        ]
+      }
+    ]
+  }
+}

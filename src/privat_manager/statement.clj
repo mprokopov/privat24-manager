@@ -117,9 +117,7 @@
   (let [statements (privat.api/get-statements (:privat @app-db) stdate endate)]
     (if (:error statements)
       (assoc statements :flash (:message statements))
-      (swap! app-db assoc-in [:manager :db :mstatements] (->> statements
-                                                              :StatementsResponse
-                                                              :statements
+      (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.api/unpack-statements statements)
                                                               (transduce (privat->manager-transducer @app-db) conj)
                                                               (sort-by :date))))))
 ;; TODO

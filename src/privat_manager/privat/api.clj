@@ -32,6 +32,9 @@
       200 (cheshire/parse-string body true)
       {:error status :message body})))
 
+(defn unpack-statements [json]
+  (get-in json [:StatementsResponse :statements]))
+
 (defn get-statements [session stdate endate]
   (get-body {:uri "transactions"
              :session session
