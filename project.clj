@@ -1,4 +1,4 @@
-(defproject privat-manager "2.0.2-rc2"
+(defproject privat-manager "2.0.3-rc1"
   :description "Import bank statements from Privat24 to Manager.io API"
   :url "http://github.com/mprokopov/privat24-manager"
   :license {:name "Eclipse Public License"
