@@ -14,7 +14,7 @@
       [:h1 "Остатки"]
       (if (privat.auth/authorized? app-db)
         (date-form)
-        [:div.alert.alert-danger "необходимо авторизоваться для загрузки остатков"])
+        [:div.alert.alert-danger "Необходимо иметь токен для загрузки остатков. Создайте автоклиент."])
       (when rests
         [:table.table.table-striped.table-hover
           [:tr

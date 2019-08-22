@@ -23,7 +23,7 @@
     (manager.api/create-item category-key (privat.util/render-manager-statement statement) manager-db))) 
 
 
-(defn privat->manager-transducer [app-db] (comp (map privat.parser/parse-statement2)
+(defn privat->manager-transducer [app-db] (comp (map privat.parser/parse-statement)
                                              (map privat.parser/assoc-transaction-type)
                                              (map #(manager.api/statement % app-db))))
 
@@ -73,7 +73,7 @@
         [:h1 "Выписки"]
         (if (privat.auth/authorized? app-db)
           (date-form)
-          [:div.alert.alert-danger "необходима авторизация для загрузки выписок"])
+          [:div.alert.alert-danger "Необходим токен для загрузки выписок. Создайте автоклиент."])
         ;; [:div.clearfix]
         (let [f (fn [statement i]
                   (let [{:keys[receipt amount refp payment purpose debit credit date payee payer recognized comment]} statement]

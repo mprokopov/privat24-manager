@@ -7,10 +7,10 @@
             [clj-time.coerce :as time.coerce])
   (:import java.util.Locale))
 
-(defn get-api-auth [{privat :privat}]
-  {:id (get privat :privat-id)
-   :token (get privat :privat-token)
-   :bank-account-number (get privat :bank-account-number) })
+;; (defn get-api-auth [{privat :privat}]
+;;   {:id (get privat :privat-id)
+;;    :token (get privat :privat-token)
+;;    :bank-account-number (get privat :bank-account-number) })
 
 (defn privat-session-info [{privat-session :privat}]
   (let [{{roles :roles expires :expires :as session} :session bid :business-id} privat-session
@@ -24,6 +24,13 @@
      [:p expire]
      [:p (utils/map-to-html-list session)]
      [:a.btn.btn-default {:href "/auth/logout"} "Выйти"]]))
+
+(defn business-info [{privat :privat}]
+   (let [{:keys [business-id privat-id privat-token]} privat]
+     [:div
+      [:h3 "Доступ для " business-id]
+      [:p "client id " (:privat-id privat)]
+      [:p "client token " (when  privat-token "существует")]]))
 
 (defn login-form [app-db]
   [:form {:action "/auth/login" :method :POST}
@@ -55,18 +62,24 @@
         manager-uri config/manager-endpoint]
      [:div
         [:h1 "Настройки"]
-        [:div.col-md-4
+        [:div.col-md-6
          (x-panel
           "Конфигурация предприятия"
           [:form {:method :post}
            [:select.form-control {:name "account"}
             (map f config/config-set)]
            [:br]
-           [:input.btn.btn-primary {:type :submit :value "Загрузить"}]])]
-        [:div.col-md-4
+           [:input.btn.btn-primary {:type :submit :value "Загрузить"}]])
+
+         (x-panel "Приват24 API"
+                  (business-info @app-db))
+         ]
+        [:div.col-md-6
+         (x-panel [:h2 "Manager API" ]
+                  [:h4 [:a {:href manager-uri} manager-uri]]
+                  )
          (x-panel "Управление Manager"
           [:div
-           [:h2 "Manager API" ] [:p [:a {:href manager-uri} manager-uri]]
            [:h2 "Загрузить из кеша"]
            [:a.btn.btn-default {:href "/settings/load?data=customers"} "Покупателей"]
            [:a.btn.btn-default {:href "/settings/load?data=suppliers"} "Поставщиков"]
@@ -74,18 +87,7 @@
            [:h2 "Сохранить кеш"]
            [:a.btn.btn-danger {:href "/settings/save?data=customers"} "Покупателей"]
            [:a.btn.btn-danger {:href "/settings/save?data=suppliers"} "Поставщиков"]])]
-        [:div.col-md-4
-         (x-panel "Приват24"
-          (if (:privat @app-db)
-            (if (privat.auth/logged? @app-db) 
-              (if (privat.auth/authorized? @app-db)
-                (privat-session-info @app-db)
-                (if (privat.auth/otp-sent? @app-db)
-                  (check-otp-form @app-db)
-                  (send-otp-form @app-db)))
-                ;[:h3 "OTP" (map utils/map-to-html-list (get-in @app-db [:privat :session :message]))])
-              (login-form @app-db))
-            "не загружены настройки"))]]))
+        ]))
 
 (defn load-account! [account app-db]
   (when-let [conf (config/config-set account)]
@@ -94,3 +96,14 @@
       (config/load-cached-db :customers app-db)
       (config/load-cached-db :suppliers app-db)
       {:flash "Настройки успешно загружены!"})))
+
+;; (if (:privat @app-db)
+;;   (if (privat.auth/logged? @app-db) 
+;;     (if (privat.auth/authorized? @app-db)
+;;       (privat-session-info @app-db)
+;;       (if (privat.auth/otp-sent? @app-db)
+;;         (check-otp-form @app-db)
+;;         (send-otp-form @app-db)))
+;;                                         ;[:h3 "OTP" (map utils/map-to-html-list (get-in @app-db [:privat :session :message]))])
+;;     (login-form @app-db))
+;;   "не загружены настройки")

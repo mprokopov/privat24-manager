@@ -71,7 +71,7 @@
    :bank-account-number (get m :BPL_B_ACC)
    })
 
-(defn parse-statement2
+(defn parse-statement
   "parses privatbank statement and returns map for further processing"
   [input]
   (let [transaction_id (-> input keys first)

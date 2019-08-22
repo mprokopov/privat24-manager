@@ -80,7 +80,8 @@
 ;;   [{{{roles :roles} :session} :privat}]
 ;;   (some #(= % "ROLE_P24_BUSINESS") roles)) 
 
-(defn authorized? [_] true)
+(defn authorized? [{{privat-id :privat-id privat-token :privat-token} :privat}]
+  (and (not (nil? privat-id)) (not (nil? privat-token))))
 
 (defn otp-sent?
   "Checks if one time password is requested"
