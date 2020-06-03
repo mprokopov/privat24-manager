@@ -57,18 +57,18 @@
 
 (defn privat-statement-debit
   [m]
-  {:name (get m :BPL_A_NAM)
-   :edrpou (get m :BPL_A_CRF)
-   :bank-mfo-number (get m :BPL_A_MFO)
-   :bank-account-number (get m :BPL_A_ACC)
+  {:name (get m :AUT_CNTR_NAM)
+   :edrpou (get m :AUT_CNTR_CRF)
+   :bank-mfo-number (get m :AUT_CNTR_MFO)
+   :bank-account-number (get m :AUT_CNTR_ACC)
    })
 
 (defn privat-statement-credit
   [m]
-  {:name (get m :BPL_B_NAM)
-   :edrpou (get m :BPL_B_CRF)
-   :bank-mfo-number (get m :BPL_B_MFO)
-   :bank-account-number (get m :BPL_B_ACC)
+  {:name (get m :AUT_MY_NAM)
+   :edrpou (get m :AUT_MY_CRF)
+   :bank-mfo-number (get m :AUT_MY_MFO)
+   :bank-account-number (get m :AUT_MY_ACC)
    })
 
 (defn parse-statement
