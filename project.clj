@@ -38,7 +38,9 @@
             [lein-bower "0.5.1"]
             [lein-environ "1.1.0"]
             [lein-ring "0.9.7"]]
-  :profiles {:uberjar {:aot :all}
+  :profiles {:uberjar {:aot :all
+                       :uberjar-name "privat-manager-standalone.jar"
+                       }
              :repl {:plugins [[cider/cider-nrepl "0.20.0"]]}
              :dev {:dependencies [[org.clojure/tools.namespace "0.2.11"]
                                   [com.stuartsierra/component.repl "0.2.0"]]
