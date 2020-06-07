@@ -19,6 +19,7 @@
 ;;                        :manager nil}))
 
 (def render-result
+  "renders response if has flash, saves in session"
   {:name :render-result
    :leave (fn [context]
             (let [result (get context :result)
@@ -52,7 +53,7 @@
   {:name :load-settings
    :enter (fn [context]
             (let [account (get-in context [:request :form-params :account] "puzko")] 
-              (assoc context :account account))) 
+              (assoc context :account account)))
    :leave (fn [context]
             (let [account (get context :account)
                   db (get context :db)]
@@ -60,30 +61,22 @@
                       :result (settings/load-account! account db)
                       :redirect (route/url-for :settings-index))))})
 
-(def privat-auth-login
-  {:name :login
-   :enter (fn [context]
-            (let [db (get context :db)]
-              (assoc context
-                     :result (auth/login! db)
-                     :redirect (route/url-for :settings-index))))})
-
 ;; (def debug-request
 ;;   {:name :debug-request
 ;;    :enter (fn [context]
 ;;             (do
 ;;               (println (:request context))
 ;;               context))})
-;; (def debug
-;;   {:name :debugger
-;;    :enter (fn [context]
-;;             (do
-;;               (println context)
-;;               context))
-;;    :leave (fn [context]
-;;             (do
-;;               (println context)
-;;               context))})
+(def debug
+  {:name :debugger
+   :enter (fn [context]
+            (do
+              (println context)
+              context))
+   :leave (fn [context]
+            (do
+              (println context)
+              context))})
 
 (def statements
   {:name :statements-index
@@ -176,15 +169,6 @@
                   db (get context :db)]
               (assoc context :result (statements/single id @db))))})
 
-(def privat-send-otp
-  {:name :privat-send-otp
-   :enter (fn [context]
-            (let [otp-person-id (get-in context [:request :query-params :id])
-                  id (Integer/parseInt otp-person-id)
-                  db (get context :db)]
-              (assoc context
-                     :result (privat.auth/send-otp! id db))))})
-                     ;:redirect (route/url-for :settings-index))))})
 ;; (def debug-result
 ;;   {:name :debug-result
 ;;    :enter (fn [context]
@@ -193,15 +177,6 @@
 ;;               (println "query params" (:query-params context) "\n")
 ;;               context))})
 
-(def privat-check-otp
-  {:name :privat-check-otp
-   :enter (fn [context]
-            (let [otp (get-in context [:request :form-params :otp])
-                  db (get context :db)]
-              (assoc context
-                     :result (privat.auth/check-otp! otp db)
-                     :redirect (route/url-for :settings-index))))})
-
 (def statement->manager
   {:name :statement->manager
    :leave (fn [context]
@@ -209,14 +184,6 @@
                   statement-index (get-in context [:request :path-params :id])
                   id (Integer/parseInt statement-index)]
               (assoc context :result (statements/post! id @db))))})
-
-(def privat-logout
-  {:name :privat-logout
-   :leave (fn [context]
-            (let [db (get context :db)]
-              (assoc context
-                     :result (privat.auth/logout! db)
-                     :redirect (route/url-for :settings-index))))})
 
 (def get-uuid
   {:name :get-uuid
@@ -260,49 +227,46 @@
 (defn routes [db-atom]
   (let [common-routes [(http.body/body-params) ring-mid/cookies (ring-mid/session) (ring-mid/flash) render-result (db db-atom)]
         template-routes (conj common-routes wrap-template)]
-   (route/expand-routes
-    #{["/" :get {:enter #(assoc % :response (response/redirect (route/url-for :settings-index)))} :route-name :index]
-      ["/settings" :get (conj template-routes settings)]
-      ["/settings" :post (conj common-routes set-account)]
-      ["/settings/load" :get (conj common-routes load-cached)]
-      ["/settings/save" :get (conj common-routes save-cached)]
-      ["/statements" :get (conj template-routes statements)]
-      ["/statements/:id" :get (conj template-routes statement)]
-      ["/statements/:id" :post (conj template-routes statement->manager)]
-      ["/statements" :post (conj template-routes get-dates statements-load)]
-      ["/rests" :get (conj template-routes rests)]
-      ["/rests" :post (conj common-routes get-dates rests-load)]
-      ["/suppliers" :get (conj template-routes suppliers)]
-      ["/suppliers/:uuid" :get (conj template-routes get-uuid supplier)]
-      ["/suppliers/:uuid" :post (conj common-routes get-uuid update-supplier)]
-      ["/suppliers" :post (conj template-routes load-suppliers)]
-      ["/customers" :get (conj template-routes customers)]
-      ["/customers" :post (conj template-routes load-customers)]
-      ["/customers/:uuid" :get (conj template-routes get-uuid customer)]
-      ["/customers/:uuid" :post (conj common-routes get-uuid update-customer)]
-      ["/auth/login" :post (conj template-routes privat-auth-login)] 
-      ["/auth/logout" :get (conj common-routes privat-logout)]
-      ["/auth/login/otp" :get (conj template-routes privat-send-otp)]
-      ["/auth/login/otp" :post (conj common-routes privat-check-otp)]})))
+    (route/expand-routes
+     #{["/" :get {:enter #(assoc % :response (response/redirect (route/url-for :settings-index)))} :route-name :index]
+       ["/settings" :get (conj template-routes settings)]
+       ["/settings" :post (conj common-routes set-account)]
+       ["/settings/load" :get (conj common-routes load-cached)]
+       ["/settings/save" :get (conj common-routes save-cached)]
+       ["/statements" :get (conj template-routes statements)]
+       ["/statements/:id" :get (conj template-routes statement)]
+       ["/statements/:id" :post (conj template-routes statement->manager)]
+       ["/statements" :post (conj common-routes get-dates statements-load)]
+       ["/rests" :get (conj template-routes rests)]
+       ["/rests" :post (conj common-routes get-dates rests-load)]
+       ["/suppliers" :get (conj template-routes suppliers)]
+       ["/suppliers/:uuid" :get (conj template-routes get-uuid supplier)]
+       ["/suppliers/:uuid" :post (conj common-routes get-uuid update-supplier)]
+       ["/suppliers" :post (conj template-routes load-suppliers)]
+       ["/customers" :get (conj template-routes customers)]
+       ["/customers" :post (conj template-routes load-customers)]
+       ["/customers/:uuid" :get (conj template-routes get-uuid customer)]
+       ["/customers/:uuid" :post (conj common-routes get-uuid update-customer)]
+       })))
 
 
-;; (defn test?
-;;   [service-map]
-;;   (= :test (:env service-map)))
+  ;; (defn test?
+  ;;   [service-map]
+  ;;   (= :test (:env service-map)))
 
-;; (defrecord Pedestal [service-map service]
-;;   component/Lifecycle
-;;   (start [this]
-;;     (if service
-;;       this
-;;       (cond-> service-map
-;;         true http/create-server
-;;         (not (test? service-map)) http/start
-;;         true ((partial assoc this :service)))))
-;;  (stop [this]
-;;     (when (and service (not (test? service-map)))
-;;       (http/stop service))
-;;     (assoc this :service nil)))
+  ;; (defrecord Pedestal [service-map service]
+  ;;   component/Lifecycle
+  ;;   (start [this]
+  ;;     (if service
+  ;;       this
+  ;;       (cond-> service-map
+  ;;         true http/create-server
+  ;;         (not (test? service-map)) http/start
+  ;;         true ((partial assoc this :service)))))
+  ;;  (stop [this]
+  ;;     (when (and service (not (test? service-map)))
+  ;;       (http/stop service))
+  ;;     (assoc this :service nil)))
 
 (defrecord Webserver [app-atom handler host port server env]
   component/Lifecycle
@@ -327,4 +291,7 @@
      :app (map->Webserver {:host host
                            :port port
                            :env env
-                           :app-atom app-atom})))) 
+                           :app-atom app-atom}))))
+(comment
+ ["/statements" :post (conj common-routes get-dates debug statements-load)]
+)

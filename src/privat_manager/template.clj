@@ -57,7 +57,10 @@
         ;; [:div.clearfix]
         [:div.row body]]]]
      (when flash
-       [:script "window.onload = function(){new PNotify({title: 'Успех', text: '" flash "', type: 'success', styling: 'bootstrap3'});}"])
+       (let [type (-> flash keys first)
+             message (get flash type)
+             title (case type :success "Успех" :error "Ошибка" :else "Что-то случилось")]
+         [:script "window.onload = function(){new PNotify({title: '" title "', text: '" message "', type: '" type "', styling: 'bootstrap3'});}"]))
      [:script {:src "/vendors/jquery/dist/jquery.min.js"}]
      [:script {:src "/vendors/pnotify/dist/pnotify.js"}]
      [:script {:src "/vendors/bootstrap/dist/js/bootstrap.js"}]
