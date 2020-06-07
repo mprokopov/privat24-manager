@@ -51,21 +51,15 @@
                             "startDate" stdate     ;"01-05-2017"
                             "endDate" endate}}))
 
-;; (->
-;  (get-statements (:privat @dev/app-db ) "01-08-2019" "05-08-2019")
-;;  :StatementsResponse
-;;  :statements
-;;  first
-;;  privat-manager.privat.parser/parse-statement2
-;;  )
 (comment
 
- (get-statements (:privat @dev/app-db ) "01-08-2019" "05-08-2019")
-   :StatementsResponse
-   :statements
-   first
-   privat-manager.privat.parser/parse-statement2
-   )
+  (->
+    (get-statements (:privat @dev/app-db ) "01-08-2019" "05-08-2019")
+      :StatementsResponse
+      :statements
+      first
+      privat-manager.privat.parser/parse-statement2)
+
 ;; mock get-statements from local data
 (defn get-statements [session stdate endate]
   (read-string (slurp "transactions.edn")))
