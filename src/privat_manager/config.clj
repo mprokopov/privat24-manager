@@ -68,5 +68,5 @@
      (swap! db assoc-in [:manager :db k]
             (read-string
              (slurp file-name)))
-     {:flash "Кеш успешно загружен"}
+     {:flash { :success "Кеш успешно загружен" }}
      (catch Exception e (str (.getMessage e))))))

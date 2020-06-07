@@ -29,6 +29,14 @@
     "D" :payment
     "n/a"))
 
+(defn statement-type2
+  "return :receipt or :payment depending on :transaction-type"
+  [type]
+  (condp = type
+    "C" :receipt
+    "D" :payment
+    "n/a"))
+
 (defn payment-purpose
   "parses payment string and returns key, by default is payment from supplier"
   [s]
@@ -81,12 +89,16 @@
   [input]
   {:pre [(s/valid? ::spec/transaction input)]}
   (let [transaction_id (-> input keys first)
-        statement (get input transaction_id)]
+        statement (get input transaction_id)
+        transaction-type (statement-type2 (get statement :TRANTYPE))
+        debit (case transaction-type :receipt (privat-statement-debit statement) :payment (privat-statement-credit statement))
+        credit (case transaction-type :receipt (privat-statement-credit statement) :payment (privat-statement-debit statement))
+        ]
     {:amount (Float/parseFloat (get-in statement [:BPL_SUM]))
      :refp transaction_id
      :date (time.format/parse custom-datetime-formatter (get-in statement [:DATE_TIME_DAT_OD_TIM_P])) ;; @customerdate
      :purpose (get statement :BPL_OSND)
-     :debit (privat-statement-debit statement)
-     :credit (privat-statement-credit statement)
+     :debit debit
+     :credit credit
      :transaction-type (get statement :TRANTYPE)
      }))
