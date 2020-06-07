@@ -43,7 +43,7 @@
             reverse))
 
     { :flash { :success "Остатки успешно загружены"}}
-    (catch Exception e {:flash { :error (.getMessage e)}})
+    (catch AssertionError e {:flash { :error (.getMessage e)}})
     ))
 
 ;; (fetch! dev/app-db "01-08-2019" "02-08-2019")

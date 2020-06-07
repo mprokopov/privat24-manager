@@ -3,6 +3,7 @@
             [clojure.spec.gen.alpha :as gen]
             [privat-manager.privat.api :as privat.api]
             ))
+;; ----- Statements ------
 (s/def ::non-blank-string (s/and string? (complement empty?)))
 (s/def ::AUT_CNTR_NAM ::non-blank-string)
 (s/def ::AUT_CNTR_CRF ::non-blank-string)
@@ -31,6 +32,27 @@
 (s/def ::StatementsResponse (s/keys :req-un [::statements]))
 
 (s/def ::response (s/keys :req-un [::StatementsResponse]))
+
+;; ----- Rests -------
+(s/def ::string-digit (s/and string? #(re-matches #"\d+(\.\d+)?" %)))
+
+(s/def ::turnoverCred ::string-digit)
+(s/def ::turnoverDept ::string-digit)
+(s/def ::balanceIn ::string-digit)
+(s/def ::balanceOut ::string-digit)
+(s/def ::balance-keys (s/keys :req-un [::turnoverCred ::turnoverDebt ::balanceIn ::balanceOut]))
+(s/def ::balance-entry (s/map-of keyword? ::balance-keys))
+(s/def ::balanceResponse (s/coll-of ::balance-entry))
+(s/def ::rests (s/keys :req-un [::balanceResponse]))
+
+(comment
+  (def rests (read-string (slurp "rests.edn")))
+  (s/valid? ::rests rests)
+
+  (s/valid? ::string-digit "12323.23a")
+
+  (s/explain-str ::rests rests)
+)
 
 (comment
 

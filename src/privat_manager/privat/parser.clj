@@ -9,6 +9,7 @@
 (defn privat-rest
   "parses privatbant rests"
   [statement]
+  { :pre [(s/valid? ::spec/balanceEntry statement)]}
   (let [acc (-> statement keys first)
         statement (walk/stringify-keys (get statement acc))]
     {
