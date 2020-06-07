@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
-
-def repo = "https://663084659937.dkr.ecr.eu-central-1.amazonaws.com"
+def registry = "663084659937.dkr.ecr.eu-central-1.amazonaws.com"
+def repo = "${registry}/privat-manager"
 def tag = "latest"
 def image = "${repo}:${tag}"
 def version = "1.0"
