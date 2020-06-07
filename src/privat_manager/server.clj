@@ -19,6 +19,7 @@
 ;;                        :manager nil}))
 
 (def render-result
+  "renders response if has flash, saves in session"
   {:name :render-result
    :leave (fn [context]
             (let [result (get context :result)
@@ -52,7 +53,7 @@
   {:name :load-settings
    :enter (fn [context]
             (let [account (get-in context [:request :form-params :account] "puzko")] 
-              (assoc context :account account))) 
+              (assoc context :account account)))
    :leave (fn [context]
             (let [account (get context :account)
                   db (get context :db)]
@@ -66,16 +67,16 @@
 ;;             (do
 ;;               (println (:request context))
 ;;               context))})
-;; (def debug
-;;   {:name :debugger
-;;    :enter (fn [context]
-;;             (do
-;;               (println context)
-;;               context))
-;;    :leave (fn [context]
-;;             (do
-;;               (println context)
-;;               context))})
+(def debug
+  {:name :debugger
+   :enter (fn [context]
+            (do
+              (println context)
+              context))
+   :leave (fn [context]
+            (do
+              (println context)
+              context))})
 
 (def statements
   {:name :statements-index
@@ -235,7 +236,7 @@
        ["/statements" :get (conj template-routes statements)]
        ["/statements/:id" :get (conj template-routes statement)]
        ["/statements/:id" :post (conj template-routes statement->manager)]
-       ["/statements" :post (conj template-routes get-dates statements-load)]
+       ["/statements" :post (conj common-routes get-dates statements-load)]
        ["/rests" :get (conj template-routes rests)]
        ["/rests" :post (conj common-routes get-dates rests-load)]
        ["/suppliers" :get (conj template-routes suppliers)]
@@ -291,3 +292,6 @@
                            :port port
                            :env env
                            :app-atom app-atom}))))
+(comment
+ ["/statements" :post (conj common-routes get-dates debug statements-load)]
+)

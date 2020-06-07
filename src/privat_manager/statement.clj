@@ -80,7 +80,7 @@
                     [:tr
                      [:td
                       [:article.media.event
-                       (let [dt (time.format/unparse (time.format/formatter "dd-MMM") date)
+                       (let [dt (time.format/unparse (time.format/with-locale (time.format/formatter "dd-MMM") (Locale. "ru")) date)
                              [day month] (str/split dt #"\-")]
                         [:a.date.pull-left {:href (str "/statements/" i)}
                           [:p.month month]
@@ -111,15 +111,19 @@
         [:p (get headers "Location")]] ; /api/937914e4-5686-4eec-ba21-474b1c0f982e/5890c101-ade6-4d67-8793-f484dcf30308.json
                                         ;[:a {:href "http://manager.it-premium.local:8080/payment-view?Key=4bf84e58-013d-413b-88c0-99454c23b119&FileID=937914e4-5686-4eec-ba21-474b1c0f982e"} "посмотреть"]]
        [:h1 "Произошла ошибка при создании!"])
-     (paging index statements)])) 
+     (paging index statements)]))
 
 (defn fetch! [app-db stdate endate]
   (let [statements (privat.api/get-statements (:privat @app-db) stdate endate)]
     (if (:error statements)
-      (assoc statements :flash (:message statements))
-      (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.api/unpack-statements statements)
-                                                              (transduce (privat->manager-transducer @app-db) conj)
-                                                              (sort-by :date))))))
+      (assoc statements :flash (:error statements))
+      (try
+        (swap! app-db assoc-in [:manager :db :mstatements] (->> (privat.api/unpack-statements statements)
+                                                                (transduce (privat->manager-transducer @app-db) conj)
+                                                                (sort-by :date)))
+        { :flash { :success "Выписки успешно загружены"}}
+        (catch AssertionError e { :flash { :error (.getMessage e)}})
+        ))))
 ;; TODO
 ;; (defn fetch2! [app-db stdate endate]
 ;;   (do
@@ -128,3 +132,7 @@
 ;;                                                             (map privat.util/transform->manager2)
 ;;                                                             (map #(privat.util/make-manager-statement % @app-db))
 ;;                                                             (sort-by :date)))))
+
+(comment
+  (fetch! dev/app-db "01.06.2020" "06.06.2020")
+  )

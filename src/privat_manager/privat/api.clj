@@ -48,13 +48,28 @@
              :session session
              :query-params {"acc" (:bank-account-number session)
                             ;; "showInf" true
-                            "startDate" stdate ;"01-05-2017"
+                            "startDate" stdate     ;"01-05-2017"
                             "endDate" endate}}))
 
 ;; (->
-;;  (get-statements (:privat @dev/app-db ) "01-08-2019" "05-08-2019")
+;  (get-statements (:privat @dev/app-db ) "01-08-2019" "05-08-2019")
 ;;  :StatementsResponse
 ;;  :statements
 ;;  first
 ;;  privat-manager.privat.parser/parse-statement2
 ;;  )
+(comment
+
+ (get-statements (:privat @dev/app-db ) "01-08-2019" "05-08-2019")
+   :StatementsResponse
+   :statements
+   first
+   privat-manager.privat.parser/parse-statement2
+   )
+;; mock get-statements from local data
+(defn get-statements [session stdate endate]
+  (read-string (slurp "transactions.edn")))
+
+(defn get-rests [session stdate endate]
+  (read-string (slurp "rests.edn")))
+)

@@ -33,13 +33,18 @@
               [:td outrest]])])]) 
 
 (defn fetch! [app-db stdate endate]
-  (swap! app-db assoc-in [:manager :db :rests]
-         (->>
-          (privat.api/get-rests (:privat @app-db) stdate endate)
-          :balanceResponse
-          (mapv privat.parser/privat-rest)
-          (sort-by :date)
-          reverse)))
+  (try
+    (swap! app-db assoc-in [:manager :db :rests]
+           (->>
+            (privat.api/get-rests (:privat @app-db) stdate endate)
+            :balanceResponse
+            (mapv privat.parser/privat-rest)
+            (sort-by :date)
+            reverse))
+
+    { :flash { :success "Остатки успешно загружены"}}
+    (catch Exception e {:flash { :error (.getMessage e)}})
+    ))
 
 ;; (fetch! dev/app-db "01-08-2019" "02-08-2019")
 ;; (-> (privat.api/get-rests (:privat @dev/app-db) "01-08-2019" "02-08-2019")

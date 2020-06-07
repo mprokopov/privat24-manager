@@ -51,4 +51,4 @@
       (config/load-settings! account app-db)
       (config/load-cached-db :customers app-db)
       (config/load-cached-db :suppliers app-db)
-      {:flash "Настройки успешно загружены!"})))
+      {:flash { :success "Настройки успешно загружены!"}})))

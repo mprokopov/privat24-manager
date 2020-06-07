@@ -2,6 +2,8 @@
   (:require [clojure.walk :as walk]
             [privat-manager.utils :refer [custom-formatter custom-datetime-formatter]]
             [clj-time.format :as time.format]
+            [privat-manager.spec :as spec]
+            [clojure.spec.alpha :as s]
             [privat-manager.config :as config]))
 
 (defn privat-rest
@@ -57,6 +59,7 @@
 
 (defn privat-statement-debit
   [m]
+  {:pre [(s/valid? ::spec/creditor m)]}
   {:name (get m :AUT_CNTR_NAM)
    :edrpou (get m :AUT_CNTR_CRF)
    :bank-mfo-number (get m :AUT_CNTR_MFO)
@@ -65,6 +68,7 @@
 
 (defn privat-statement-credit
   [m]
+  {:pre [(s/valid? ::spec/debitor m)]}
   {:name (get m :AUT_MY_NAM)
    :edrpou (get m :AUT_MY_CRF)
    :bank-mfo-number (get m :AUT_MY_MFO)
@@ -74,6 +78,7 @@
 (defn parse-statement
   "parses privatbank statement and returns map for further processing"
   [input]
+  {:pre [(s/valid? ::spec/transaction input)]}
   (let [transaction_id (-> input keys first)
         statement (get input transaction_id)]
     {:amount (Float/parseFloat (get-in statement [:BPL_SUM]))
