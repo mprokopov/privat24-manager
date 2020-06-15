@@ -101,11 +101,13 @@
         [:ul.nav.child_menu {:style "display: block;"}
          [:li [:a {:href "/settings"} "Настройки"]]]]])]])
 
+(def custom-formatter (time.format/formatter "dd-MM-yyyy"))
+
 (defn date-form []
   [:div.col-md-3
    [:form#date-select {:method :post}
-    [:input {:name :stdate :type :hidden}]
-    [:input {:name :endate :type :hidden}]
+    [:input {:name :stdate :type :hidden :value (time.format/unparse custom-formatter (clj-time.core/now))}]
+    [:input {:name :endate :type :hidden :value (time.format/unparse custom-formatter (clj-time.core/now))}]
     [:div.controls
      [:div.input-prepend.input-group
       [:span.add-in.input-group-addon

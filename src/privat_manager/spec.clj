@@ -37,7 +37,7 @@
 (s/def ::string-digit (s/and string? #(re-matches #"\d+(\.\d+)?" %)))
 
 (s/def ::turnoverCred ::string-digit)
-(s/def ::turnoverDept ::string-digit)
+(s/def ::turnoverDebt ::string-digit)
 (s/def ::balanceIn ::string-digit)
 (s/def ::balanceOut ::string-digit)
 (s/def ::balance-keys (s/keys :req-un [::turnoverCred ::turnoverDebt ::balanceIn ::balanceOut]))
@@ -47,6 +47,9 @@
 
 (comment
   (def rests (read-string (slurp "rests.edn")))
+
+  (gen/sample (s/gen ::balance-entry))
+
   (s/valid? ::rests rests)
 
   (s/valid? ::string-digit "12323.23a")
