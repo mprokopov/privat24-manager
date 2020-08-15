@@ -108,8 +108,13 @@
      (if (= status 201)
        [:div
         [:h1 "Успешно создано!"]
-        [:p (get headers "Location")]] ; /api/937914e4-5686-4eec-ba21-474b1c0f982e/5890c101-ade6-4d67-8793-f484dcf30308.json
-                                        ;[:a {:href "http://manager.it-premium.local:8080/payment-view?Key=4bf84e58-013d-413b-88c0-99454c23b119&FileID=937914e4-5686-4eec-ba21-474b1c0f982e"} "посмотреть"]]
+        (let [location (get headers "Location")
+              uid (manager.api/parse-header-location location)
+              link (manager.api/payment-view-link uid (manager :business-id))]
+          [:div
+           [:p
+            "Создана запись " uid]
+           [:a.btn.btn-success {:href link} "Открыть в Manager"]])] ; /api/937914e4-5686-4eec-ba21-474b1c0f982e/5890c101-ade6-4d67-8793-f484dcf30308.json
        [:h1 "Произошла ошибка при создании!"])
      (paging index statements)]))
 
@@ -124,6 +129,7 @@
         { :flash { :success "Выписки успешно загружены"}}
         (catch AssertionError e { :flash { :error (.getMessage e)}})
         ))))
+;; (fetch! dev/app-db "15-06-2020" "15-06-2020")
 ;; TODO
 ;; (defn fetch2! [app-db stdate endate]
 ;;   (do
