@@ -1,0 +1,12 @@
+#!/usr/bin/env groovy
+pipeline {
+  agent any
+
+  stages{
+    stage('Run test suite') {
+      steps{
+        sh '/var/lib/jenkins/lein test'
+      }
+    }
+  }
+}
