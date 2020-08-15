@@ -4,19 +4,15 @@
 
 
 (deftest payment-purposes-test
-  (is (=
-       (sut/payment-purpose "Вasdfasdfasdf")
-       :supplier))
-  (is (=
-       (sut/payment-purpose "РКО")
-       :operational-expences-bank))
-  (is (=
-       (sut/payment-purpose "Выдача наличных средств")
-       :transfer)))
+  (is (= :supplier
+         (sut/payment-purpose "Вasdfasdfasdf")))
+  (is (= :operational-expences-bank
+         (sut/payment-purpose "РКО")))
+  (is (= :transfer
+         (sut/payment-purpose "Выдача наличных средств"))))
 
 (deftest receipt-purposes-test
-  (is (= (sut/receipt-purpose "asdfasdfasdf")
-         :customer))
-  (is (=
-       (sut/receipt-purpose "Агентська виногорода")
-       :agent-income)))
+  (is (= :customer
+         (sut/receipt-purpose "asdfasdfasdf")))
+  (is (= :agent-income
+         (sut/receipt-purpose "Агентська виногорода"))))
