@@ -117,6 +117,16 @@
   [k db]
   (get-in db [:uuids k]))
 
+(defn parse-header-location [s]
+  (second
+   (re-find #"^\/api\/.+\/(.+)\.json" s)))
+
+(defn payment-view-link [uid business-id]
+  (let [link (-> (re-find #"(.+)/api" api) second)]
+    (str
+     link
+     "/receipt-or-payment-view?Key=" uid "&FileID=" business-id)))
+
 (defmulti statement (fn [m _] (select-keys m [:payment :receipt])))
 
 (defmethod statement
