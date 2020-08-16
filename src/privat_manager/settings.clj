@@ -25,7 +25,7 @@
        "Конфигурация предприятия"
        [:form {:method :post}
         [:select.form-control {:name "account"}
-         (map f config/config-set)]
+         (map f @config/config-set)]
         [:br]
         [:input.btn.btn-primary {:type :submit :value "Загрузить"}]])
       (x-panel "Приват24 API"
@@ -46,7 +46,7 @@
      ]))
 
 (defn load-account! [account app-db]
-  (when-let [conf (config/config-set account)]
+  (when-let [conf (@config/config-set account)]
     (do
       (config/load-settings! account app-db)
       (config/load-cached-db :customers app-db)

@@ -17,7 +17,8 @@
         filtered (filter #(re-matches #".*conf.edn$" (.getName %)) config-directory)]
      (set (map matched-config-name filtered))))
 
-(def config-set (read-config))
+;; (def config-set (read-config))
+(def config-set (atom (read-config)))
 
 (defn load-edn [res]
   (let [res-file (io/file res)]
@@ -30,9 +31,9 @@
     (when (seq loaded) (log/info "Successfully loaded " res))
     loaded))
 
-(def payment-purposes (load-edn-resourse "resources/settings/payment-purposes.edn"))
+(def payment-purposes (atom (load-edn-resourse "resources/settings/payment-purposes.edn")))
 
-(def receipt-purposes (load-edn-resourse "resources/settings/receipt-purposes.edn"))
+(def receipt-purposes (atom (load-edn-resourse "resources/settings/receipt-purposes.edn")))
 
 (defn load-uuids2 [settings]
   (let [bid (get-in @settings [:manager :business-id])]

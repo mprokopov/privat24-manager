@@ -45,7 +45,7 @@
               (if found
                 v
                 acc)))
-          :supplier config/payment-purposes))
+          :supplier @config/payment-purposes))
 
 (defn receipt-purpose
   "parses receipt string and returns receipt key"
@@ -55,7 +55,7 @@
               (if found
                 v
                 acc)))
-          :customer config/receipt-purposes))
+          :customer @config/receipt-purposes))
 
 (defn assoc-transaction-type
   "assoc parsed statement with category from parsed purpose"
